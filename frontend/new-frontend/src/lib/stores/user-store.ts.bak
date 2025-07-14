@@ -1,0 +1,162 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { User, UserPreferences } from '../../types';
+import { createPersistentStore } from './utils/persistent-store';
+import { createAsyncActions, AsyncState } from './utils/async-actions';
+
+interface UserState extends AsyncState {
+  // User data
+  user: User | null;
+  isAuthenticated: boolean;
+  
+  // Auth actions
+  setUser: (user: User | null) => void;
+  updateUser: (updates: Partial<User>) => void;
+  updatePreferences: (preferences: Partial<UserPreferences>) => void;
+  
+  // Auth flow
+  login: (email: string, password: string) => Promise<User | null>;
+  logout: () => void;
+  refreshToken: () => Promise<void>;
+  
+  // Subscription management
+  updateSubscription: (subscription: User['subscription']) => void;
+  
+  // Async actions
+  asyncActions: ReturnType<typeof createAsyncActions>;
+}
+
+const initialState = {
+  user: null,
+  isAuthenticated: false,
+  isLoading: false,
+  error: null,
+};
+
+export const useUserStore = create<UserState>()(
+  persist(
+    (set, get) => {
+      const asyncActions = createAsyncActions(set, get);
+      
+      return {
+        ...initialState,
+        asyncActions,
+        
+        // Basic setters
+        setUser: (user: User | null) => {
+          set({
+            user,
+            isAuthenticated: !!user,
+            error: null,
+          });
+        },
+        
+        updateUser: (updates: Partial<User>) => {
+          const { user } = get();
+          if (!user) return;
+          
+          set({
+            user: { ...user, ...updates, updatedAt: new Date().toISOString() },
+          });
+        },
+        
+        updatePreferences: (preferences: Partial<UserPreferences>) => {
+          const { user } = get();
+          if (!user) return;
+          
+          set({
+            user: {
+              ...user,
+              preferences: { ...user.preferences, ...preferences },
+              updatedAt: new Date().toISOString(),
+            },
+          });
+        },
+        
+        // Auth actions
+        login: async (email: string, _password: string): Promise<User | null> => {
+          return asyncActions.execute(async () => {
+            // TODO: Implement actual API call
+            // const response = await authAPI.login({ email, password });
+            
+            // Mock implementation for now
+            const mockUser: User = {
+              id: '1',
+              email,
+              name: email.split('@')[0],
+              subscription: undefined,
+              preferences: {
+                language: 'en',
+                theme: 'system',
+                defaultWritingStyle: 'professional',
+                autoSave: true,
+                notifications: {
+                  email: true,
+                  push: false,
+                  marketing: false,
+                },
+              },
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            
+            get().setUser(mockUser);
+            return mockUser;
+          });
+        },
+        
+        logout: () => {
+          set({
+            user: null,
+            isAuthenticated: false,
+            error: null,
+          });
+          
+          // Clear other stores if needed
+          // TODO: Add cleanup for other stores
+        },
+        
+        refreshToken: async (): Promise<void> => {
+          await asyncActions.execute(async () => {
+            // TODO: Implement token refresh
+            // const response = await authAPI.refreshToken();
+            // get().setUser(response.user);
+            return;
+          });
+        },
+        
+        updateSubscription: (subscription: User['subscription']) => {
+          const { user } = get();
+          if (!user) return;
+          
+          set({
+            user: {
+              ...user,
+              subscription,
+              updatedAt: new Date().toISOString(),
+            },
+          });
+        },
+      };
+    },
+    {
+      ...createPersistentStore('user', 1),
+      partialize: (state) => ({
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+      }),
+    }
+  )
+);
+
+// Selectors
+export const userSelectors = {
+  user: (state: UserState) => state.user,
+  isAuthenticated: (state: UserState) => state.isAuthenticated,
+  isLoading: (state: UserState) => state.isLoading,
+  error: (state: UserState) => state.error,
+  preferences: (state: UserState) => state.user?.preferences,
+  subscription: (state: UserState) => state.user?.subscription,
+  isPro: (state: UserState) => state.user?.subscription?.plan === 'pro',
+  isEnterprise: (state: UserState) => state.user?.subscription?.plan === 'enterprise',
+};

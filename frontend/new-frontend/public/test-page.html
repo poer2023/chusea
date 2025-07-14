@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Writing Tool - Test Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">AI Writing Tool</h1>
+            <p class="text-gray-600">智能写作助手测试界面</p>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="mb-8">
+            <div class="flex justify-center space-x-4">
+                <button id="tab-home" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                    首页
+                </button>
+                <button id="tab-editor" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors">
+                    编辑器
+                </button>
+                <button id="tab-chat" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors">
+                    AI聊天
+                </button>
+                <button id="tab-workflow" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors">
+                    工作流
+                </button>
+            </div>
+        </nav>
+
+        <!-- Content Areas -->
+        
+        <!-- Home Section -->
+        <section id="home-section" class="mb-8">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-semibold mb-4">欢迎使用AI写作工具</h2>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <h3 class="font-medium text-gray-900">核心功能</h3>
+                        <ul class="space-y-2 text-gray-600">
+                            <li>✅ 智能写作助手</li>
+                            <li>✅ 循环工作流引擎</li>
+                            <li>✅ 文献引用管理</li>
+                            <li>✅ 可读性分析</li>
+                            <li>✅ 多格式转换</li>
+                        </ul>
+                    </div>
+                    <div class="space-y-4">
+                        <h3 class="font-medium text-gray-900">技术特性</h3>
+                        <ul class="space-y-2 text-gray-600">
+                            <li>🚀 Next.js 15 + React 19</li>
+                            <li>🎨 Tailwind CSS v4.0</li>
+                            <li>⚡ tRPC类型安全API</li>
+                            <li>📱 响应式设计</li>
+                            <li>🔄 实时WebSocket</li>
+                        </ul>
+                    </div>
+                </div>
+                <button id="start-writing" class="mt-6 bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors">
+                    开始写作
+                </button>
+            </div>
+        </section>
+
+        <!-- Editor Section -->
+        <section id="editor-section" class="mb-8 hidden">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-semibold mb-4">富文本编辑器</h2>
+                
+                <!-- Editor Toolbar -->
+                <div class="border-b pb-4 mb-4">
+                    <div class="flex space-x-2">
+                        <button id="bold-btn" class="px-3 py-1 border rounded hover:bg-gray-100" title="粗体">
+                            <strong>B</strong>
+                        </button>
+                        <button id="italic-btn" class="px-3 py-1 border rounded hover:bg-gray-100" title="斜体">
+                            <em>I</em>
+                        </button>
+                        <button id="underline-btn" class="px-3 py-1 border rounded hover:bg-gray-100" title="下划线">
+                            <u>U</u>
+                        </button>
+                        <div class="border-l mx-2"></div>
+                        <button id="undo-btn" class="px-3 py-1 border rounded hover:bg-gray-100" title="撤销">
+                            ↶
+                        </button>
+                        <button id="redo-btn" class="px-3 py-1 border rounded hover:bg-gray-100" title="重做">
+                            ↷
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Editor Content -->
+                <div id="editor-content" class="border rounded-lg p-4 min-h-[300px] bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" contenteditable="true">
+                    <p>在此开始写作...</p>
+                </div>
+                
+                <!-- Editor Actions -->
+                <div class="mt-4 flex space-x-2">
+                    <button id="save-document" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        保存文档
+                    </button>
+                    <button id="analyze-text" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                        分析文本
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Chat Section -->
+        <section id="chat-section" class="mb-8 hidden">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-semibold mb-4">AI写作助手</h2>
+                
+                <!-- Chat Messages -->
+                <div id="chat-messages" class="border rounded-lg p-4 h-64 overflow-y-auto mb-4 bg-gray-50">
+                    <div class="text-gray-500 text-center">开始与AI助手对话...</div>
+                </div>
+                
+                <!-- Chat Input -->
+                <div class="flex space-x-2">
+                    <input 
+                        id="chat-input" 
+                        type="text" 
+                        placeholder="输入您的写作需求..." 
+                        class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                    <button id="send-message" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">
+                        发送
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Workflow Section -->
+        <section id="workflow-section" class="mb-8 hidden">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-semibold mb-4">智能工作流</h2>
+                
+                <!-- Workflow Steps -->
+                <div class="grid grid-cols-5 gap-4 mb-6">
+                    <div id="step-plan" class="text-center p-4 border rounded-lg">
+                        <div class="w-8 h-8 bg-blue-500 text-white rounded-full mx-auto mb-2 flex items-center justify-center">1</div>
+                        <div class="text-sm font-medium">计划</div>
+                        <div class="text-xs text-gray-500">Plan</div>
+                    </div>
+                    <div id="step-draft" class="text-center p-4 border rounded-lg">
+                        <div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full mx-auto mb-2 flex items-center justify-center">2</div>
+                        <div class="text-sm font-medium">草稿</div>
+                        <div class="text-xs text-gray-500">Draft</div>
+                    </div>
+                    <div id="step-citation" class="text-center p-4 border rounded-lg">
+                        <div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full mx-auto mb-2 flex items-center justify-center">3</div>
+                        <div class="text-sm font-medium">引用</div>
+                        <div class="text-xs text-gray-500">Citation</div>
+                    </div>
+                    <div id="step-grammar" class="text-center p-4 border rounded-lg">
+                        <div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full mx-auto mb-2 flex items-center justify-center">4</div>
+                        <div class="text-sm font-medium">语法</div>
+                        <div class="text-xs text-gray-500">Grammar</div>
+                    </div>
+                    <div id="step-readability" class="text-center p-4 border rounded-lg">
+                        <div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full mx-auto mb-2 flex items-center justify-center">5</div>
+                        <div class="text-sm font-medium">可读性</div>
+                        <div class="text-xs text-gray-500">Readability</div>
+                    </div>
+                </div>
+                
+                <!-- Workflow Controls -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">写作主题</label>
+                        <input 
+                            id="workflow-topic" 
+                            type="text" 
+                            placeholder="例如：人工智能的发展现状与未来趋势" 
+                            class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">写作类型</label>
+                            <select id="writing-type" class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="academic">学术论文</option>
+                                <option value="blog">博客文章</option>
+                                <option value="social">社交媒体</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">可读性目标</label>
+                            <select id="readability-target" class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="70">70分 - 良好</option>
+                                <option value="80">80分 - 优秀</option>
+                                <option value="90">90分 - 卓越</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button id="start-workflow" class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600">
+                            启动工作流
+                        </button>
+                        <button id="stop-workflow" class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 hidden">
+                            停止工作流
+                        </button>
+                        <button id="reset-workflow" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600">
+                            重置
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Status Bar -->
+        <div id="status-bar" class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg hidden">
+            <div id="status-message">就绪</div>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching
+        const tabs = ['home', 'editor', 'chat', 'workflow'];
+        tabs.forEach(tab => {
+            document.getElementById(`tab-${tab}`).addEventListener('click', () => {
+                // Hide all sections
+                tabs.forEach(t => {
+                    document.getElementById(`${t}-section`).classList.add('hidden');
+                    document.getElementById(`tab-${t}`).classList.remove('bg-blue-500', 'text-white');
+                    document.getElementById(`tab-${t}`).classList.add('bg-gray-200', 'text-gray-700');
+                });
+                
+                // Show selected section
+                document.getElementById(`${tab}-section`).classList.remove('hidden');
+                document.getElementById(`tab-${tab}`).classList.add('bg-blue-500', 'text-white');
+                document.getElementById(`tab-${tab}`).classList.remove('bg-gray-200', 'text-gray-700');
+            });
+        });
+
+        // Status bar helper
+        function showStatus(message, type = 'success') {
+            const statusBar = document.getElementById('status-bar');
+            const statusMessage = document.getElementById('status-message');
+            
+            statusMessage.textContent = message;
+            statusBar.classList.remove('hidden', 'bg-green-500', 'bg-red-500', 'bg-blue-500');
+            
+            if (type === 'error') {
+                statusBar.classList.add('bg-red-500');
+            } else if (type === 'info') {
+                statusBar.classList.add('bg-blue-500');
+            } else {
+                statusBar.classList.add('bg-green-500');
+            }
+            
+            setTimeout(() => {
+                statusBar.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Home page actions
+        document.getElementById('start-writing').addEventListener('click', () => {
+            document.getElementById('tab-editor').click();
+            showStatus('已切换到编辑器模式');
+        });
+
+        // Editor actions
+        document.getElementById('save-document').addEventListener('click', () => {
+            const content = document.getElementById('editor-content').innerHTML;
+            localStorage.setItem('document-content', content);
+            showStatus('文档已保存');
+        });
+
+        document.getElementById('analyze-text').addEventListener('click', () => {
+            const content = document.getElementById('editor-content').textContent;
+            const wordCount = content.trim().split(/\s+/).length;
+            showStatus(`文本分析：${wordCount} 词`, 'info');
+        });
+
+        // Chat functionality
+        document.getElementById('send-message').addEventListener('click', () => {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (message) {
+                const messagesContainer = document.getElementById('chat-messages');
+                
+                // Add user message
+                const userMsg = document.createElement('div');
+                userMsg.className = 'mb-2 text-right';
+                userMsg.innerHTML = `<span class="bg-blue-500 text-white px-3 py-2 rounded-lg inline-block">${message}</span>`;
+                messagesContainer.appendChild(userMsg);
+                
+                // Simulate AI response
+                setTimeout(() => {
+                    const aiMsg = document.createElement('div');
+                    aiMsg.className = 'mb-2';
+                    aiMsg.innerHTML = `<span class="bg-gray-200 text-gray-800 px-3 py-2 rounded-lg inline-block">我理解您的需求，让我来帮助您完成这个写作任务。</span>`;
+                    messagesContainer.appendChild(aiMsg);
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }, 1000);
+                
+                input.value = '';
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                showStatus('消息已发送');
+            }
+        });
+
+        // Enter key for chat
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('send-message').click();
+            }
+        });
+
+        // Workflow actions
+        document.getElementById('start-workflow').addEventListener('click', () => {
+            const topic = document.getElementById('workflow-topic').value;
+            const type = document.getElementById('writing-type').value;
+            const target = document.getElementById('readability-target').value;
+            
+            if (!topic) {
+                showStatus('请输入写作主题', 'error');
+                return;
+            }
+            
+            // Simulate workflow steps
+            let currentStep = 0;
+            const steps = ['plan', 'draft', 'citation', 'grammar', 'readability'];
+            
+            document.getElementById('start-workflow').classList.add('hidden');
+            document.getElementById('stop-workflow').classList.remove('hidden');
+            
+            const interval = setInterval(() => {
+                if (currentStep < steps.length) {
+                    // Update step appearance
+                    const stepElement = document.getElementById(`step-${steps[currentStep]}`);
+                    const circle = stepElement.querySelector('div');
+                    circle.classList.remove('bg-gray-300', 'text-gray-600');
+                    circle.classList.add('bg-blue-500', 'text-white');
+                    
+                    showStatus(`正在执行: ${steps[currentStep]}`, 'info');
+                    currentStep++;
+                } else {
+                    clearInterval(interval);
+                    document.getElementById('start-workflow').classList.remove('hidden');
+                    document.getElementById('stop-workflow').classList.add('hidden');
+                    showStatus('工作流完成！');
+                }
+            }, 2000);
+        });
+
+        document.getElementById('reset-workflow').addEventListener('click', () => {
+            const steps = ['plan', 'draft', 'citation', 'grammar', 'readability'];
+            steps.forEach(step => {
+                const stepElement = document.getElementById(`step-${step}`);
+                const circle = stepElement.querySelector('div');
+                circle.classList.remove('bg-blue-500', 'text-white');
+                circle.classList.add('bg-gray-300', 'text-gray-600');
+            });
+            
+            document.getElementById('start-workflow').classList.remove('hidden');
+            document.getElementById('stop-workflow').classList.add('hidden');
+            showStatus('工作流已重置');
+        });
+
+        // Load saved content
+        window.addEventListener('load', () => {
+            const savedContent = localStorage.getItem('document-content');
+            if (savedContent) {
+                document.getElementById('editor-content').innerHTML = savedContent;
+            }
+        });
+    </script>
+</body>
+</html>

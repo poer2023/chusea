@@ -1,0 +1,42 @@
+# Page snapshot
+
+```yaml
+- alert
+- button "Open Next.js Dev Tools":
+  - img
+- text: AI 驱动的写作助手
+- heading "ChUseA 智能写作工具" [level=1]
+- paragraph: 结合 AI 智能、工作流管理和文档协作的现代化写作平台。 让创作更高效，让协作更简单。
+- link "开始对话":
+  - /url: /chat
+- link "体验编辑器":
+  - /url: /demo
+- heading "强大的功能集合" [level=2]
+- paragraph: 从 AI 对话到工作流管理，一个平台满足您的所有写作需求
+- heading "AI 智能对话" [level=3]
+- paragraph: 与 AI 助手进行自然对话，获得写作建议、内容优化和创意灵感
+- text: 开始使用
+- heading "富文本编辑器" [level=3]
+- paragraph: 功能强大的编辑器，支持 Markdown、格式化和实时预览
+- text: 开始使用
+- heading "工作流管理" [level=3]
+- paragraph: 自定义写作工作流，自动化内容生成和编辑流程
+- text: 开始使用
+- heading "AI 内容生成" [level=3]
+- paragraph: 基于上下文的智能内容生成，提高写作效率
+- text: 开始使用
+- heading "团队协作" [level=3]
+- paragraph: 实时协作编辑，评论系统和版本控制
+- text: 开始使用
+- heading "快速部署" [level=3]
+- paragraph: 一键发布到多个平台，支持 SEO 优化和社交分享
+- text: 开始使用 10K+ 活跃用户 50K+ 文档创建 99% 用户满意度
+- heading "准备开始您的智能写作之旅？" [level=2]
+- paragraph: 立即体验 ChUseA 的强大功能，让 AI 助力您的创作流程
+- link "立即开始":
+  - /url: /chat
+- link "查看演示":
+  - /url: /demo
+- button "Open Tanstack query devtools":
+  - img
+```

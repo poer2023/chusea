@@ -1,13 +1,14 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
-from sqlalchemy.orm import Session
-from sqlalchemy import desc, and_
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import desc, and_, func, select
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime, timezone
 import re
 
-from core.database import get_db, Document, User
+from core.database import get_async_db, Document, User
 from core.models import DocumentResponse, DocumentCreate, DocumentUpdate
+from core.auth import get_current_user
 
 router = APIRouter()
 
@@ -34,38 +35,53 @@ async def get_documents(
     page_size: int = Query(10, ge=1, le=100, description="每页数量"),
     document_type: Optional[str] = Query(None, description="文档类型"),
     search: Optional[str] = Query(None, description="搜索关键词"),
-    user_id: int = 1,  # TODO: 从认证中获取
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """获取文档列表"""
     try:
-        # 构建查询
-        query = db.query(Document).filter(
-            and_(
-                Document.user_id == user_id,
-                Document.is_deleted == False
-            )
+        # 构建基础查询条件
+        base_conditions = and_(
+            Document.user_id == current_user.id,
+            Document.is_deleted == False
         )
+        
+        # 构建查询
+        query = select(Document).where(base_conditions)
         
         # 按类型过滤
         if document_type:
-            query = query.filter(Document.document_type == document_type)
+            query = query.where(Document.document_type == document_type)
         
         # 搜索过滤
         if search:
             search_pattern = f"%{search}%"
-            query = query.filter(
+            query = query.where(
                 Document.title.ilike(search_pattern) |
                 Document.content.ilike(search_pattern)
             )
         
         # 获取总数
-        total = query.count()
+        count_query = select(func.count()).select_from(Document).where(base_conditions)
+        if document_type:
+            count_query = count_query.where(Document.document_type == document_type)
+        if search:
+            search_pattern = f"%{search}%"
+            count_query = count_query.where(
+                Document.title.ilike(search_pattern) |
+                Document.content.ilike(search_pattern)
+            )
+        
+        result = await db.execute(count_query)
+        total = result.scalar()
         
         # 分页和排序
-        documents = query.order_by(desc(Document.updated_at)).offset(
+        query = query.order_by(desc(Document.updated_at)).offset(
             (page - 1) * page_size
-        ).limit(page_size).all()
+        ).limit(page_size)
+        
+        result = await db.execute(query)
+        documents = result.scalars().all()
         
         return DocumentListResponse(
             documents=[DocumentResponse.from_orm(doc) for doc in documents],
@@ -80,18 +96,21 @@ async def get_documents(
 @router.get("/{document_id}", response_model=DocumentResponse)
 async def get_document(
     document_id: int,
-    user_id: int = 1,  # TODO: 从认证中获取
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """获取单个文档"""
     try:
-        document = db.query(Document).filter(
+        query = select(Document).where(
             and_(
                 Document.id == document_id,
-                Document.user_id == user_id,
+                Document.user_id == current_user.id,
                 Document.is_deleted == False
             )
-        ).first()
+        )
+        
+        result = await db.execute(query)
+        document = result.scalar_one_or_none()
         
         if not document:
             raise HTTPException(status_code=404, detail="文档不存在")
@@ -106,8 +125,8 @@ async def get_document(
 @router.post("/", response_model=DocumentResponse)
 async def create_document(
     document: DocumentCreate,
-    user_id: int = 1,  # TODO: 从认证中获取
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """创建新文档"""
     try:
@@ -118,36 +137,39 @@ async def create_document(
             title=document.title,
             content=document.content or "",
             document_type=document.document_type,
-            user_id=user_id,
+            user_id=current_user.id,
             word_count=word_count
         )
         
         db.add(db_document)
-        db.commit()
-        db.refresh(db_document)
+        await db.commit()
+        await db.refresh(db_document)
         
         return DocumentResponse.from_orm(db_document)
         
     except Exception as e:
-        db.rollback()
+        await db.rollback()
         raise HTTPException(status_code=500, detail=f"创建文档失败: {str(e)}")
 
 @router.put("/{document_id}", response_model=DocumentResponse)
 async def update_document(
     document_id: int,
     document_update: DocumentUpdate,
-    user_id: int = 1,  # TODO: 从认证中获取
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """更新文档"""
     try:
-        db_document = db.query(Document).filter(
+        query = select(Document).where(
             and_(
                 Document.id == document_id,
-                Document.user_id == user_id,
+                Document.user_id == current_user.id,
                 Document.is_deleted == False
             )
-        ).first()
+        )
+        
+        result = await db.execute(query)
+        db_document = result.scalar_one_or_none()
         
         if not db_document:
             raise HTTPException(status_code=404, detail="文档不存在")
@@ -163,32 +185,35 @@ async def update_document(
         
         db_document.updated_at = datetime.now(timezone.utc)
         
-        db.commit()
-        db.refresh(db_document)
+        await db.commit()
+        await db.refresh(db_document)
         
         return DocumentResponse.from_orm(db_document)
         
     except HTTPException:
         raise
     except Exception as e:
-        db.rollback()
+        await db.rollback()
         raise HTTPException(status_code=500, detail=f"更新文档失败: {str(e)}")
 
 @router.delete("/{document_id}")
 async def delete_document(
     document_id: int,
-    user_id: int = 1,  # TODO: 从认证中获取
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """删除文档（软删除）"""
     try:
-        db_document = db.query(Document).filter(
+        query = select(Document).where(
             and_(
                 Document.id == document_id,
-                Document.user_id == user_id,
+                Document.user_id == current_user.id,
                 Document.is_deleted == False
             )
-        ).first()
+        )
+        
+        result = await db.execute(query)
+        db_document = result.scalar_one_or_none()
         
         if not db_document:
             raise HTTPException(status_code=404, detail="文档不存在")
@@ -197,31 +222,34 @@ async def delete_document(
         db_document.is_deleted = True
         db_document.updated_at = datetime.now(timezone.utc)
         
-        db.commit()
+        await db.commit()
         
         return {"message": "文档删除成功"}
         
     except HTTPException:
         raise
     except Exception as e:
-        db.rollback()
+        await db.rollback()
         raise HTTPException(status_code=500, detail=f"删除文档失败: {str(e)}")
 
 @router.post("/{document_id}/duplicate", response_model=DocumentResponse)
 async def duplicate_document(
     document_id: int,
-    user_id: int = 1,  # TODO: 从认证中获取
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """复制文档"""
     try:
-        original_doc = db.query(Document).filter(
+        query = select(Document).where(
             and_(
                 Document.id == document_id,
-                Document.user_id == user_id,
+                Document.user_id == current_user.id,
                 Document.is_deleted == False
             )
-        ).first()
+        )
+        
+        result = await db.execute(query)
+        original_doc = result.scalar_one_or_none()
         
         if not original_doc:
             raise HTTPException(status_code=404, detail="原文档不存在")
@@ -231,53 +259,57 @@ async def duplicate_document(
             title=f"{original_doc.title} - 副本",
             content=original_doc.content,
             document_type=original_doc.document_type,
-            user_id=user_id,
+            user_id=current_user.id,
             word_count=original_doc.word_count
         )
         
         db.add(duplicate_doc)
-        db.commit()
-        db.refresh(duplicate_doc)
+        await db.commit()
+        await db.refresh(duplicate_doc)
         
         return DocumentResponse.from_orm(duplicate_doc)
         
     except HTTPException:
         raise
     except Exception as e:
-        db.rollback()
+        await db.rollback()
         raise HTTPException(status_code=500, detail=f"复制文档失败: {str(e)}")
 
 @router.get("/stats/overview")
 async def get_document_stats(
-    user_id: int = 1,  # TODO: 从认证中获取
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """获取文档统计信息"""
     try:
         # 总文档数
-        total_docs = db.query(Document).filter(
-            and_(Document.user_id == user_id, Document.is_deleted == False)
-        ).count()
+        total_docs_query = select(func.count()).select_from(Document).where(
+            and_(Document.user_id == current_user.id, Document.is_deleted == False)
+        )
+        result = await db.execute(total_docs_query)
+        total_docs = result.scalar()
         
         # 按类型分组统计
         type_stats = {}
         for doc_type in ['academic', 'blog', 'social']:
-            count = db.query(Document).filter(
+            type_count_query = select(func.count()).select_from(Document).where(
                 and_(
-                    Document.user_id == user_id,
+                    Document.user_id == current_user.id,
                     Document.document_type == doc_type,
                     Document.is_deleted == False
                 )
-            ).count()
+            )
+            result = await db.execute(type_count_query)
+            count = result.scalar()
             type_stats[doc_type] = count
         
         # 总字数
-        total_words = db.query(
-            Document.word_count
-        ).filter(
-            and_(Document.user_id == user_id, Document.is_deleted == False)
-        ).all()
-        total_word_count = sum([doc.word_count or 0 for doc in total_words])
+        words_query = select(Document.word_count).where(
+            and_(Document.user_id == current_user.id, Document.is_deleted == False)
+        )
+        result = await db.execute(words_query)
+        word_counts = result.scalars().all()
+        total_word_count = sum([word_count or 0 for word_count in word_counts])
         
         return {
             "total_documents": total_docs,

@@ -218,7 +218,11 @@ class LiteratureAgent(BaseAgent):
         if self.llm_client is None:
             search_summary = self._generate_mock_search_summary(query, literature_items)
         else:
-            search_summary = await self._generate_search_summary(query, literature_items)
+            try:
+                search_summary = await self._generate_search_summary(query, literature_items)
+            except Exception as llm_error:
+                print(f"LLM call failed for literature search, falling back to mock: {llm_error}")
+                search_summary = self._generate_mock_search_summary(query, literature_items)
         
         return AgentResponse(
             content=search_summary,

@@ -3,6 +3,7 @@
 """
 import pytest
 import asyncio
+import httpx
 from httpx import AsyncClient
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -44,7 +45,7 @@ async def async_client():
     # 创建测试数据库表
     Base.metadata.create_all(bind=engine)
     
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(base_url="http://test", transport=httpx.ASGITransport(app=app)) as ac:
         yield ac
     
     # 清理测试数据库
@@ -95,3 +96,26 @@ def sample_literature_query():
             "publication_type": "journal"
         }
     }
+
+@pytest.fixture
+async def auth_headers(async_client: AsyncClient):
+    """创建测试用户并返回认证headers"""
+    # 注册测试用户
+    register_data = {
+        "username": "testuser",
+        "email": "test@example.com",
+        "password": "testpassword"
+    }
+    
+    await async_client.post("/api/auth/register", json=register_data)
+    
+    # 登录获取token
+    login_data = {
+        "username": "testuser",
+        "password": "testpassword"
+    }
+    
+    response = await async_client.post("/api/auth/login-json", json=login_data)
+    token_data = response.json()
+    
+    return {"Authorization": f"Bearer {token_data['access_token']}"}

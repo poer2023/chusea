@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChUseA WebSocket Client Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            opacity: 0.9;
+        }
+        
+        .main {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        .section {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .section h2 {
+            color: #334155;
+            margin-bottom: 15px;
+            font-size: 1.25rem;
+        }
+        
+        .status {
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-weight: 500;
+            text-align: center;
+        }
+        
+        .status.connected {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        
+        .status.disconnected {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        
+        .status.connecting {
+            background: #fefce8;
+            color: #a16207;
+            border: 1px solid #fde047;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+        
+        button:hover:not(:disabled) {
+            background: #4338ca;
+            transform: translateY(-1px);
+        }
+        
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .messages {
+            background: #1f2937;
+            color: #f9fafb;
+            border-radius: 6px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .message {
+            margin-bottom: 10px;
+            padding: 5px 0;
+            border-bottom: 1px solid #374151;
+        }
+        
+        .message:last-child {
+            border-bottom: none;
+        }
+        
+        .message-header {
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        
+        .sent { color: #10b981; }
+        .received { color: #3b82f6; }
+        .system { color: #f59e0b; }
+        .error { color: #ef4444; }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .metric {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4f46e5;
+        }
+        
+        .metric-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .main {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ChUseA WebSocket Client Test</h1>
+            <p>Real-time communication testing interface</p>
+        </div>
+        
+        <div class="main">
+            <!-- Connection Section -->
+            <div class="section">
+                <h2>🔌 Connection</h2>
+                
+                <div id="status" class="status disconnected">
+                    Disconnected
+                </div>
+                
+                <div class="form-group">
+                    <label for="documentId">Document ID</label>
+                    <input type="text" id="documentId" value="test-frontend-integration" placeholder="Enter document ID">
+                </div>
+                
+                <div class="form-group">
+                    <label for="endpoint">WebSocket Endpoint</label>
+                    <select id="endpoint">
+                        <option value="document">Document: /api/ws/{documentId}</option>
+                        <option value="general">General: /api/ws?doc_id={documentId}</option>
+                        <option value="chat">Chat: /api/chat/ws/{sessionId}</option>
+                        <option value="workflow">Workflow: /api/workflow/ws/{workflowId}</option>
+                    </select>
+                </div>
+                
+                <div class="button-group">
+                    <button onclick="connect()">Connect</button>
+                    <button onclick="disconnect()">Disconnect</button>
+                    <button onclick="reconnect()">Reconnect</button>
+                </div>
+            </div>
+            
+            <!-- Messaging Section -->
+            <div class="section">
+                <h2>💬 Messaging</h2>
+                
+                <div class="form-group">
+                    <label for="messageType">Message Type</label>
+                    <select id="messageType">
+                        <option value="ping">Ping</option>
+                        <option value="client_message">Client Message</option>
+                        <option value="subscribe_workflow">Subscribe Workflow</option>
+                        <option value="chat_message">Chat Message</option>
+                        <option value="workflow_command">Workflow Command</option>
+                        <option value="custom">Custom JSON</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="messageContent">Message Content</label>
+                    <textarea id="messageContent" rows="3" placeholder="Enter message content or JSON"></textarea>
+                </div>
+                
+                <div class="button-group">
+                    <button onclick="sendQuickMessage()" id="sendBtn" disabled>Send Message</button>
+                    <button onclick="sendPing()" id="pingBtn" disabled>Quick Ping</button>
+                    <button onclick="sendHeartbeat()" id="heartbeatBtn" disabled>Heartbeat</button>
+                    <button onclick="clearMessages()">Clear Log</button>
+                </div>
+            </div>
+            
+            <!-- Message Log -->
+            <div class="section" style="grid-column: 1 / -1;">
+                <h2>📋 Message Log</h2>
+                <div id="messages" class="messages"></div>
+            </div>
+            
+            <!-- Performance Metrics -->
+            <div class="section" style="grid-column: 1 / -1;">
+                <h2>📊 Performance Metrics</h2>
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value" id="connectionTime">-</div>
+                        <div class="metric-label">Connection Time (ms)</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="messagesSent">0</div>
+                        <div class="metric-label">Messages Sent</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="messagesReceived">0</div>
+                        <div class="metric-label">Messages Received</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="averageLatency">-</div>
+                        <div class="metric-label">Average Latency (ms)</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="reconnections">0</div>
+                        <div class="metric-label">Reconnections</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="errors">0</div>
+                        <div class="metric-label">Errors</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // WebSocket connection and state management
+        let ws = null;
+        let isConnected = false;
+        let connectionStartTime = 0;
+        let metrics = {
+            messagesSent: 0,
+            messagesReceived: 0,
+            latencies: [],
+            reconnections: 0,
+            errors: 0
+        };
+
+        // UI Elements
+        const statusEl = document.getElementById('status');
+        const buttons = ['sendBtn', 'pingBtn', 'heartbeatBtn'];
+
+        // Update connection status UI
+        function updateStatus(status, details = '') {
+            const statusText = details ? `${status} - ${details}` : status;
+            statusEl.textContent = statusText;
+            
+            statusEl.className = 'status ' + 
+                (status === 'Connected' ? 'connected' : 
+                 status === 'Connecting' ? 'connecting' : 'disconnected');
+            
+            const isConnectedNow = status === 'Connected';
+            buttons.forEach(id => {
+                document.getElementById(id).disabled = !isConnectedNow;
+            });
+            
+            isConnected = isConnectedNow;
+        }
+
+        // Add message to log
+        function addMessage(message, type = 'received') {
+            const messagesEl = document.getElementById('messages');
+            const messageEl = document.createElement('div');
+            messageEl.className = 'message';
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const messageData = typeof message === 'object' ? JSON.stringify(message, null, 2) : message;
+            
+            messageEl.innerHTML = `
+                <div class="message-header ${type}">[${type.toUpperCase()}] ${timestamp}</div>
+                <pre>${messageData}</pre>
+            `;
+            
+            messagesEl.appendChild(messageEl);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+            
+            // Update metrics
+            if (type === 'sent') {
+                metrics.messagesSent++;
+                updateMetrics();
+            } else if (type === 'received') {
+                metrics.messagesReceived++;
+                updateMetrics();
+            } else if (type === 'error') {
+                metrics.errors++;
+                updateMetrics();
+            }
+        }
+
+        // Update performance metrics display
+        function updateMetrics() {
+            document.getElementById('messagesSent').textContent = metrics.messagesSent;
+            document.getElementById('messagesReceived').textContent = metrics.messagesReceived;
+            document.getElementById('reconnections').textContent = metrics.reconnections;
+            document.getElementById('errors').textContent = metrics.errors;
+            
+            if (metrics.latencies.length > 0) {
+                const avg = metrics.latencies.reduce((sum, lat) => sum + lat, 0) / metrics.latencies.length;
+                document.getElementById('averageLatency').textContent = Math.round(avg);
+            }
+        }
+
+        // Build WebSocket URL based on selected endpoint
+        function buildWebSocketUrl() {
+            const documentId = document.getElementById('documentId').value.trim();
+            const endpoint = document.getElementById('endpoint').value;
+            
+            if (!documentId) {
+                alert('Please enter a document ID');
+                return null;
+            }
+            
+            const baseUrl = 'ws://localhost:8002';
+            
+            switch (endpoint) {
+                case 'document':
+                    return `${baseUrl}/api/ws/${documentId}`;
+                case 'general':
+                    return `${baseUrl}/api/ws?doc_id=${documentId}`;
+                case 'chat':
+                    return `${baseUrl}/api/chat/ws/${documentId}`;
+                case 'workflow':
+                    return `${baseUrl}/api/workflow/ws/${documentId}`;
+                default:
+                    return `${baseUrl}/api/ws/${documentId}`;
+            }
+        }
+
+        // Connect to WebSocket
+        function connect() {
+            if (isConnected) {
+                addMessage('Already connected!', 'system');
+                return;
+            }
+            
+            const wsUrl = buildWebSocketUrl();
+            if (!wsUrl) return;
+            
+            updateStatus('Connecting');
+            connectionStartTime = Date.now();
+            
+            try {
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = function(event) {
+                    const connectionTime = Date.now() - connectionStartTime;
+                    document.getElementById('connectionTime').textContent = connectionTime;
+                    
+                    updateStatus('Connected', `in ${connectionTime}ms`);
+                    addMessage({ type: 'connection_opened', url: wsUrl, connectionTime }, 'system');
+                };
+                
+                ws.onmessage = function(event) {
+                    try {
+                        const message = JSON.parse(event.data);
+                        addMessage(message, 'received');
+                        
+                        // Calculate latency for ping/pong
+                        if (message.type === 'pong' && message.data?.timestamp) {
+                            const latency = Date.now() - message.data.timestamp;
+                            metrics.latencies.push(latency);
+                            if (metrics.latencies.length > 100) {
+                                metrics.latencies.shift(); // Keep only last 100 measurements
+                            }
+                            updateMetrics();
+                        }
+                    } catch (e) {
+                        addMessage({ raw_data: event.data, parse_error: e.message }, 'error');
+                    }
+                };
+                
+                ws.onclose = function(event) {
+                    updateStatus('Disconnected', `Code: ${event.code}`);
+                    addMessage({ 
+                        type: 'connection_closed', 
+                        code: event.code, 
+                        reason: event.reason || 'No reason provided'
+                    }, 'system');
+                };
+                
+                ws.onerror = function(error) {
+                    addMessage({ type: 'connection_error', error: error.toString() }, 'error');
+                    updateStatus('Error', 'Connection failed');
+                };
+                
+            } catch (error) {
+                addMessage({ type: 'connection_error', error: error.message }, 'error');
+                updateStatus('Error', 'Failed to create WebSocket');
+            }
+        }
+
+        // Disconnect WebSocket
+        function disconnect() {
+            if (ws) {
+                ws.close(1000, 'Client initiated disconnect');
+                ws = null;
+            }
+            updateStatus('Disconnected', 'Manual disconnect');
+        }
+
+        // Reconnect WebSocket
+        function reconnect() {
+            disconnect();
+            metrics.reconnections++;
+            setTimeout(() => {
+                connect();
+            }, 1000);
+        }
+
+        // Send message based on current form inputs
+        function sendQuickMessage() {
+            if (!isConnected) {
+                alert('Not connected!');
+                return;
+            }
+            
+            const messageType = document.getElementById('messageType').value;
+            const content = document.getElementById('messageContent').value.trim();
+            
+            let message;
+            
+            switch (messageType) {
+                case 'ping':
+                    message = { type: 'ping', timestamp: Date.now() };
+                    break;
+                    
+                case 'client_message':
+                    message = { 
+                        type: 'client_message', 
+                        content: content || 'Test message from frontend client',
+                        timestamp: Date.now()
+                    };
+                    break;
+                    
+                case 'subscribe_workflow':
+                    message = { type: 'subscribe_workflow', timestamp: Date.now() };
+                    break;
+                    
+                case 'chat_message':
+                    message = {
+                        type: 'chat_message',
+                        data: {
+                            content: content || 'Hello from WebSocket client!',
+                            timestamp: Date.now()
+                        }
+                    };
+                    break;
+                    
+                case 'workflow_command':
+                    message = {
+                        type: 'workflow_command',
+                        data: {
+                            command: content || 'start',
+                            timestamp: Date.now()
+                        }
+                    };
+                    break;
+                    
+                case 'custom':
+                    try {
+                        message = JSON.parse(content || '{"type": "test"}');
+                    } catch (e) {
+                        alert('Invalid JSON: ' + e.message);
+                        return;
+                    }
+                    break;
+                    
+                default:
+                    message = { type: messageType, content, timestamp: Date.now() };
+            }
+            
+            try {
+                const messageString = JSON.stringify(message);
+                ws.send(messageString);
+                addMessage(message, 'sent');
+            } catch (error) {
+                addMessage({ error: 'Failed to send message: ' + error.message }, 'error');
+            }
+        }
+
+        // Quick action buttons
+        function sendPing() {
+            if (isConnected) {
+                const message = { type: 'ping', timestamp: Date.now() };
+                ws.send(JSON.stringify(message));
+                addMessage(message, 'sent');
+            }
+        }
+
+        function sendHeartbeat() {
+            if (isConnected) {
+                const message = { type: 'heartbeat', timestamp: Date.now() };
+                ws.send(JSON.stringify(message));
+                addMessage(message, 'sent');
+            }
+        }
+
+        function clearMessages() {
+            document.getElementById('messages').innerHTML = '';
+        }
+
+        // Initialize UI
+        updateStatus('Disconnected');
+        
+        // Auto-update message type content based on selection
+        document.getElementById('messageType').addEventListener('change', function() {
+            const messageType = this.value;
+            const contentEl = document.getElementById('messageContent');
+            
+            switch (messageType) {
+                case 'client_message':
+                    contentEl.placeholder = 'Enter your message content...';
+                    contentEl.value = 'Hello from frontend integration test!';
+                    break;
+                case 'chat_message':
+                    contentEl.placeholder = 'Enter chat message...';
+                    contentEl.value = 'Testing real-time chat functionality';
+                    break;
+                case 'workflow_command':
+                    contentEl.placeholder = 'Enter workflow command...';
+                    contentEl.value = 'start';
+                    break;
+                case 'custom':
+                    contentEl.placeholder = 'Enter custom JSON message...';
+                    contentEl.value = '{\n  "type": "custom_test",\n  "data": {\n    "action": "test"\n  }\n}';
+                    break;
+                default:
+                    contentEl.placeholder = 'Message content (optional)';
+                    contentEl.value = '';
+            }
+        });
+
+        // Initialize default content
+        document.getElementById('messageType').dispatchEvent(new Event('change'));
+    </script>
+</body>
+</html>

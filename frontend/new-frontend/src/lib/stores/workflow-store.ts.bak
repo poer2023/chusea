@@ -1,0 +1,448 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { WritingWorkflow, WorkflowStep, AIWritingRequest, AIWritingResponse } from '../../types';
+import { createPersistentStore } from './utils/persistent-store';
+import { createAsyncActions, AsyncState } from './utils/async-actions';
+
+interface WorkflowState extends AsyncState {
+  // Workflow data
+  activeWorkflow: WritingWorkflow | null;
+  workflowHistory: WritingWorkflow[];
+  
+  // Current step data
+  currentStepData: Record<string, any>;
+  stepProgress: Record<WorkflowStep, number>;
+  
+  // AI writing state
+  aiRequests: AIWritingRequest[];
+  aiResponses: AIWritingResponse[];
+  isGenerating: boolean;
+  
+  // Workflow actions
+  startWorkflow: (documentId: string, steps?: WorkflowStep[]) => Promise<WritingWorkflow | null>;
+  pauseWorkflow: () => void;
+  resumeWorkflow: () => void;
+  completeWorkflow: () => Promise<boolean>;
+  cancelWorkflow: () => void;
+  
+  // Step management
+  moveToStep: (step: WorkflowStep) => Promise<boolean>;
+  completeStep: (step: WorkflowStep, data?: Record<string, any>) => Promise<boolean>;
+  skipStep: (step: WorkflowStep) => Promise<boolean>;
+  updateStepData: (step: WorkflowStep, data: Record<string, any>) => void;
+  updateStepProgress: (step: WorkflowStep, progress: number) => void;
+  
+  // AI writing actions
+  generateContent: (request: AIWritingRequest) => Promise<AIWritingResponse | null>;
+  regenerateContent: (requestIndex: number) => Promise<AIWritingResponse | null>;
+  applyAIContent: (responseIndex: number, targetId?: string) => void;
+  clearAIHistory: () => void;
+  
+  // Templates and presets
+  createTemplate: (name: string, steps: WorkflowStep[]) => void;
+  loadTemplate: (templateName: string) => WorkflowStep[];
+  
+  // Analytics and insights
+  getWorkflowStats: () => {
+    totalWorkflows: number;
+    completedWorkflows: number;
+    averageCompletionTime: number;
+    mostUsedSteps: WorkflowStep[];
+  };
+  
+  // Async actions
+  asyncActions: ReturnType<typeof createAsyncActions>;
+}
+
+const defaultSteps: WorkflowStep[] = ['planning', 'research', 'outlining', 'writing', 'editing', 'review'];
+
+const initialState = {
+  activeWorkflow: null,
+  workflowHistory: [],
+  currentStepData: {},
+  stepProgress: {
+    planning: 0,
+    research: 0,
+    outlining: 0,
+    writing: 0,
+    editing: 0,
+    review: 0,
+    publishing: 0,
+  },
+  aiRequests: [],
+  aiResponses: [],
+  isGenerating: false,
+  isLoading: false,
+  error: null,
+};
+
+export const useWorkflowStore = create<WorkflowState>()(
+  persist(
+    (set, get) => {
+      const asyncActions = createAsyncActions(set, get);
+      
+      return {
+        ...initialState,
+        asyncActions,
+        
+        // Workflow management
+        startWorkflow: async (documentId: string, steps = defaultSteps): Promise<WritingWorkflow | null> => {
+          return asyncActions.execute(async () => {
+            const newWorkflow: WritingWorkflow = {
+              id: `workflow_${Date.now()}`,
+              documentId,
+              currentStep: steps[0],
+              steps: steps.map((step, index) => ({
+                step,
+                status: (index === 0 ? 'in_progress' : 'pending') as 'pending' | 'in_progress' | 'completed' | 'skipped',
+                data: {},
+              })),
+              progress: 0,
+              isActive: true,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            
+            set({
+              activeWorkflow: newWorkflow,
+              currentStepData: {},
+              stepProgress: {
+                planning: 0,
+                research: 0,
+                outlining: 0,
+                writing: 0,
+                editing: 0,
+                review: 0,
+                publishing: 0,
+              },
+            });
+            
+            return newWorkflow;
+          });
+        },
+        
+        pauseWorkflow: () => {
+          const { activeWorkflow } = get();
+          if (!activeWorkflow) return;
+          
+          set({
+            activeWorkflow: {
+              ...activeWorkflow,
+              isActive: false,
+              updatedAt: new Date().toISOString(),
+            },
+          });
+        },
+        
+        resumeWorkflow: () => {
+          const { activeWorkflow } = get();
+          if (!activeWorkflow) return;
+          
+          set({
+            activeWorkflow: {
+              ...activeWorkflow,
+              isActive: true,
+              updatedAt: new Date().toISOString(),
+            },
+          });
+        },
+        
+        completeWorkflow: async () => {
+          return asyncActions.execute(async () => {
+            const { activeWorkflow, workflowHistory } = get();
+            if (!activeWorkflow) return false;
+            
+            const completedWorkflow: WritingWorkflow = {
+              ...activeWorkflow,
+              progress: 100,
+              isActive: false,
+              steps: activeWorkflow.steps.map((step) => ({
+                ...step,
+                status: step.status === 'pending' ? 'skipped' : step.status,
+              })),
+              updatedAt: new Date().toISOString(),
+            };
+            
+            set({
+              activeWorkflow: null,
+              workflowHistory: [completedWorkflow, ...workflowHistory],
+              currentStepData: {},
+            });
+            
+            return true;
+          });
+        },
+        
+        cancelWorkflow: () => {
+          set({
+            activeWorkflow: null,
+            currentStepData: {},
+            aiRequests: [],
+            aiResponses: [],
+          });
+        },
+        
+        // Step management
+        moveToStep: async (step: WorkflowStep) => {
+          return asyncActions.execute(async () => {
+            const { activeWorkflow } = get();
+            if (!activeWorkflow) return false;
+            
+            const stepIndex = activeWorkflow.steps.findIndex((s) => s.step === step);
+            if (stepIndex === -1) return false;
+            
+            const updatedSteps = activeWorkflow.steps.map((s, index) => ({
+              ...s,
+              status: index < stepIndex ? 'completed' : index === stepIndex ? 'in_progress' : 'pending',
+            }));
+            
+            const completedSteps = updatedSteps.filter((s) => s.status === 'completed').length;
+            const progress = (completedSteps / updatedSteps.length) * 100;
+            
+            set({
+              activeWorkflow: {
+                ...activeWorkflow,
+                currentStep: step,
+                steps: updatedSteps,
+                progress,
+                updatedAt: new Date().toISOString(),
+              },
+            });
+            
+            return true;
+          });
+        },
+        
+        completeStep: async (step: WorkflowStep, data = {}) => {
+          return asyncActions.execute(async () => {
+            const { activeWorkflow } = get();
+            if (!activeWorkflow) return false;
+            
+            const stepIndex = activeWorkflow.steps.findIndex((s) => s.step === step);
+            if (stepIndex === -1) return false;
+            
+            const updatedSteps = [...activeWorkflow.steps];
+            updatedSteps[stepIndex] = {
+              ...updatedSteps[stepIndex],
+              status: 'completed',
+              data: { ...updatedSteps[stepIndex].data, ...data },
+              completedAt: new Date().toISOString(),
+            };
+            
+            const completedSteps = updatedSteps.filter((s) => s.status === 'completed').length;
+            const progress = (completedSteps / updatedSteps.length) * 100;
+            
+            // Move to next step if available
+            const nextStepIndex = stepIndex + 1;
+            let currentStep = step;
+            if (nextStepIndex < updatedSteps.length) {
+              updatedSteps[nextStepIndex].status = 'in_progress';
+              currentStep = updatedSteps[nextStepIndex].step;
+            }
+            
+            set({
+              activeWorkflow: {
+                ...activeWorkflow,
+                currentStep,
+                steps: updatedSteps,
+                progress,
+                updatedAt: new Date().toISOString(),
+              },
+              stepProgress: {
+                ...get().stepProgress,
+                [step]: 100,
+              },
+            });
+            
+            return true;
+          });
+        },
+        
+        skipStep: async (step: WorkflowStep) => {
+          return asyncActions.execute(async () => {
+            const { activeWorkflow } = get();
+            if (!activeWorkflow) return false;
+            
+            const stepIndex = activeWorkflow.steps.findIndex((s) => s.step === step);
+            if (stepIndex === -1) return false;
+            
+            const updatedSteps = [...activeWorkflow.steps];
+            updatedSteps[stepIndex] = {
+              ...updatedSteps[stepIndex],
+              status: 'skipped',
+            };
+            
+            // Move to next step if available
+            const nextStepIndex = stepIndex + 1;
+            let currentStep = step;
+            if (nextStepIndex < updatedSteps.length) {
+              updatedSteps[nextStepIndex].status = 'in_progress';
+              currentStep = updatedSteps[nextStepIndex].step;
+            }
+            
+            const completedSteps = updatedSteps.filter((s) => s.status === 'completed').length;
+            const progress = (completedSteps / updatedSteps.length) * 100;
+            
+            set({
+              activeWorkflow: {
+                ...activeWorkflow,
+                currentStep,
+                steps: updatedSteps,
+                progress,
+                updatedAt: new Date().toISOString(),
+              },
+            });
+            
+            return true;
+          });
+        },
+        
+        updateStepData: (step: WorkflowStep, data: Record<string, any>) => {
+          set((state) => ({
+            currentStepData: {
+              ...state.currentStepData,
+              [step]: { ...state.currentStepData[step], ...data },
+            },
+          }));
+        },
+        
+        updateStepProgress: (step: WorkflowStep, progress: number) => {
+          set((state) => ({
+            stepProgress: {
+              ...state.stepProgress,
+              [step]: Math.max(0, Math.min(100, progress)),
+            },
+          }));
+        },
+        
+        // AI writing actions
+        generateContent: async (request: AIWritingRequest) => {
+          set({ isGenerating: true });
+          
+          const result = await asyncActions.execute(async () => {
+            // TODO: Replace with actual AI API call
+            // const response = await aiAPI.generateContent(request);
+            
+            // Mock implementation
+            const mockResponse: AIWritingResponse = {
+              content: `Generated content for: ${request.prompt}`,
+              suggestions: [
+                'Consider adding more detail to this section',
+                'This could benefit from examples',
+                'Try varying sentence structure',
+              ],
+              metadata: {
+                model: 'gpt-4',
+                tokensUsed: 150,
+                confidence: 0.85,
+                processingTime: 2500,
+              },
+            };
+            
+            set((state) => ({
+              aiRequests: [...state.aiRequests, request],
+              aiResponses: [...state.aiResponses, mockResponse],
+              isGenerating: false,
+            }));
+            
+            return mockResponse;
+          });
+          
+          if (!result) {
+            set({ isGenerating: false });
+          }
+          
+          return result;
+        },
+        
+        regenerateContent: async (requestIndex: number) => {
+          const { aiRequests } = get();
+          const request = aiRequests[requestIndex];
+          if (!request) return null;
+          
+          return get().generateContent(request);
+        },
+        
+        applyAIContent: (responseIndex: number, targetId?: string) => {
+          const { aiResponses } = get();
+          const response = aiResponses[responseIndex];
+          if (!response) return;
+          
+          // TODO: Apply content to document or current step
+          // This would typically integrate with the document store
+          console.log('Applying AI content:', response.content, 'to target:', targetId);
+        },
+        
+        clearAIHistory: () => {
+          set({
+            aiRequests: [],
+            aiResponses: [],
+          });
+        },
+        
+        // Templates and presets
+        createTemplate: (name: string, steps: WorkflowStep[]) => {
+          // TODO: Implement template storage
+          console.log('Creating template:', name, steps);
+        },
+        
+        loadTemplate: (templateName: string): WorkflowStep[] => {
+          // TODO: Implement template loading
+          console.log('Loading template:', templateName);
+          return defaultSteps;
+        },
+        
+        // Analytics
+        getWorkflowStats: () => {
+          const { workflowHistory } = get();
+          const completedWorkflows = workflowHistory.filter(
+            (w) => w.progress === 100
+          );
+          
+          const stepUsage = workflowHistory.reduce((acc, workflow) => {
+            workflow.steps.forEach((step) => {
+              if (step.status === 'completed') {
+                acc[step.step] = (acc[step.step] || 0) + 1;
+              }
+            });
+            return acc;
+          }, {} as Record<WorkflowStep, number>);
+          
+          const mostUsedSteps = Object.entries(stepUsage)
+            .sort(([, a], [, b]) => b - a)
+            .map(([step]) => step as WorkflowStep);
+          
+          return {
+            totalWorkflows: workflowHistory.length,
+            completedWorkflows: completedWorkflows.length,
+            averageCompletionTime: 0, // TODO: Calculate from workflow data
+            mostUsedSteps,
+          };
+        },
+      };
+    },
+    {
+      ...createPersistentStore('workflow', 1),
+      partialize: (state) => ({
+        workflowHistory: state.workflowHistory.slice(0, 50), // Keep last 50 workflows
+        stepProgress: state.stepProgress,
+      }),
+    }
+  )
+);
+
+// Selectors
+export const workflowSelectors = {
+  activeWorkflow: (state: WorkflowState) => state.activeWorkflow,
+  currentStep: (state: WorkflowState) => state.activeWorkflow?.currentStep,
+  currentStepData: (state: WorkflowState) => state.currentStepData,
+  stepProgress: (state: WorkflowState) => state.stepProgress,
+  workflowProgress: (state: WorkflowState) => state.activeWorkflow?.progress || 0,
+  isWorkflowActive: (state: WorkflowState) => state.activeWorkflow?.isActive || false,
+  aiHistory: (state: WorkflowState) => ({
+    requests: state.aiRequests,
+    responses: state.aiResponses,
+  }),
+  isGenerating: (state: WorkflowState) => state.isGenerating,
+  workflowStats: (state: WorkflowState) => state.getWorkflowStats(),
+};

@@ -3,12 +3,12 @@
 """
 from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, update, delete
 from sqlalchemy.orm import selectinload
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 
-from core.database import get_db
+from core.database import get_async_db
 from core.auth import get_current_user
 from core.workflow_models import WorkflowDocument, WorkflowNode, NodeMetrics, WorkflowStatus, NodeType, NodeStatus
 from core.workflow_engine import workflow_engine
@@ -56,7 +56,7 @@ class WorkflowStatusResponse(BaseModel):
 async def start_workflow(
     request: StartWorkflowRequest,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """启动工作流循环"""
     try:
@@ -103,7 +103,7 @@ async def start_workflow(
 async def stop_workflow(
     document_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """停止工作流循环"""
     try:
@@ -141,7 +141,7 @@ async def stop_workflow(
 async def get_workflow_status(
     document_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """获取工作流状态"""
     try:
@@ -185,7 +185,7 @@ async def rollback_to_node(
     document_id: str,
     node_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """回滚到指定节点"""
     try:
@@ -221,10 +221,10 @@ async def rollback_to_node(
         
         # 删除该节点之后的所有节点
         await db.execute(
-            select(WorkflowNode).where(
+            delete(WorkflowNode).where(
                 WorkflowNode.document_id == document_id,
                 WorkflowNode.created_at > node.created_at
-            ).delete()
+            )
         )
         
         # 根据节点类型重启工作流
@@ -253,7 +253,7 @@ async def rollback_to_node(
 async def get_workflow_nodes(
     document_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """获取工作流节点历史"""
     try:
@@ -314,7 +314,7 @@ async def create_workflow_document(
     title: str,
     config: Optional[LoopConfig] = None,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """创建新的工作流文档"""
     try:
@@ -353,7 +353,7 @@ async def create_workflow_document(
 @router.get("/documents", response_model=List[Dict[str, Any]])
 async def get_workflow_documents(
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """获取用户的工作流文档列表"""
     try:
