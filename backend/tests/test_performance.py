@@ -1,5 +1,6 @@
 """
 性能测试
+测试API响应时间、并发处理能力和资源使用情况
 """
 import pytest
 import asyncio

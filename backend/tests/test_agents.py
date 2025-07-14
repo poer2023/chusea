@@ -8,7 +8,8 @@ import asyncio
 from agents.writing_agent import WritingAgent
 from agents.literature_agent import LiteratureAgent  
 from agents.tools_agent import ToolsAgent
-from core.models import WritingRequest, LiteratureQuery, ChartRequest
+from core.models import WritingRequest, LiteratureSearchRequest, ChartGenerationRequest
+from core.agent_manager import AgentRequest, AgentType
 
 class TestWritingAgent:
     """写作Agent测试"""
@@ -21,35 +22,32 @@ class TestWritingAgent:
     @pytest.mark.asyncio
     async def test_academic_writing(self, writing_agent):
         """测试学术写作功能"""
-        request = WritingRequest(
-            content="请写一篇关于机器学习的论文摘要",
-            writing_type="academic",
-            style="formal"
+        request = AgentRequest(
+            prompt="请写一篇关于机器学习的论文摘要",
+            agent_type=AgentType.WRITING,
+            user_id=1,
+            context={"mode": "academic"}
         )
         
-        with patch.object(writing_agent, '_call_llm') as mock_llm:
-            mock_llm.return_value = "这是一个关于机器学习的学术摘要..."
-            
-            result = await writing_agent.assist(request)
-            assert result.content is not None
-            assert len(result.content) > 0
-            mock_llm.assert_called_once()
+        result = await writing_agent.process(request)
+        assert result.content is not None
+        assert len(result.content) > 0
+        assert result.success == True
     
     @pytest.mark.asyncio
     async def test_blog_writing(self, writing_agent):
         """测试博客写作功能"""
-        request = WritingRequest(
-            content="写一篇关于AI技术的博客文章",
-            writing_type="blog",
-            style="casual"
+        request = AgentRequest(
+            prompt="写一篇关于AI技术的博客文章",
+            agent_type=AgentType.WRITING,
+            user_id=1,
+            context={"mode": "blog"}
         )
         
-        with patch.object(writing_agent, '_call_llm') as mock_llm:
-            mock_llm.return_value = "AI技术正在改变我们的生活..."
-            
-            result = await writing_agent.assist(request)
-            assert result.content is not None
-            assert "AI" in result.content
+        result = await writing_agent.process(request)
+        assert result.content is not None
+        assert len(result.content) > 0
+        assert result.success == True
     
     @pytest.mark.asyncio
     async def test_text_enhancement(self, writing_agent):
@@ -86,9 +84,9 @@ class TestLiteratureAgent:
     @pytest.mark.asyncio
     async def test_search_papers(self, literature_agent):
         """测试论文搜索功能"""
-        query = LiteratureQuery(
+        query = LiteratureSearchRequest(
             query="machine learning",
-            limit=10
+            max_results=10
         )
         
         mock_results = [
@@ -163,7 +161,7 @@ class TestToolsAgent:
     @pytest.mark.asyncio
     async def test_generate_chart(self, tools_agent):
         """测试图表生成功能"""
-        request = ChartRequest(
+        request = ChartGenerationRequest(
             data={"x": [1, 2, 3], "y": [10, 20, 15]},
             chart_type="line",
             title="测试图表"
@@ -236,13 +234,13 @@ class TestAgentIntegration:
             
             # 执行工作流
             literature_result = await literature_agent.search(
-                LiteratureQuery(query="AI research", limit=5)
+                LiteratureSearchRequest(query="AI research", max_results=5)
             )
             writing_result = await writing_agent.assist(
-                WritingRequest(content="写一篇AI综述", writing_type="academic")
+                WritingRequest(prompt="写一篇AI综述")
             )
             chart_result = await tools_agent.generate_chart(
-                ChartRequest(data={"x": [1, 2], "y": [3, 4]}, chart_type="bar")
+                ChartGenerationRequest(data={"x": [1, 2], "y": [3, 4]}, chart_type="bar")
             )
             
             # 验证结果
@@ -260,8 +258,7 @@ class TestAgentIntegration:
             
             with pytest.raises(Exception) as exc_info:
                 await writing_agent.assist(WritingRequest(
-                    content="测试内容", 
-                    writing_type="academic"
+                    prompt="测试内容"
                 ))
             
             assert "LLM服务不可用" in str(exc_info.value)

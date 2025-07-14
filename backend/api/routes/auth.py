@@ -1,19 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from pydantic import BaseModel
 from datetime import timedelta
 from typing import Optional
 
-from core.database import get_db
+from core.database import get_async_db
 from core.database_models import User
 from core.models import UserCreate, UserResponse
 from core.auth import (
-    authenticate_user,
+    authenticate_user_async,
     create_access_token,
     get_password_hash,
     ACCESS_TOKEN_EXPIRE_MINUTES,
-    get_current_user
+    get_current_user_async
 )
 
 router = APIRouter()
@@ -27,17 +28,21 @@ class LoginRequest(BaseModel):
     password: str
 
 @router.post("/register", response_model=UserResponse)
-async def register(user_data: UserCreate, db: Session = Depends(get_db)):
+async def register(user_data: UserCreate, db: AsyncSession = Depends(get_async_db)):
     """用户注册"""
     # 检查用户名是否已存在
-    if db.query(User).filter(User.username == user_data.username).first():
+    query = select(User).where(User.username == user_data.username)
+    result = await db.execute(query)
+    if result.scalar_one_or_none():
         raise HTTPException(
             status_code=400,
             detail="Username already registered"
         )
     
     # 检查邮箱是否已存在
-    if db.query(User).filter(User.email == user_data.email).first():
+    query = select(User).where(User.email == user_data.email)
+    result = await db.execute(query)
+    if result.scalar_one_or_none():
         raise HTTPException(
             status_code=400,
             detail="Email already registered"
@@ -52,15 +57,15 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     )
     
     db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+    await db.commit()
+    await db.refresh(db_user)
     
     return UserResponse.model_validate(db_user)
 
 @router.post("/login", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_async_db)):
     """用户登录"""
-    user = authenticate_user(form_data.username, form_data.password, db)
+    user = await authenticate_user_async(form_data.username, form_data.password, db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -74,9 +79,9 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/login-json", response_model=Token)
-async def login_json(login_data: LoginRequest, db: Session = Depends(get_db)):
+async def login_json(login_data: LoginRequest, db: AsyncSession = Depends(get_async_db)):
     """JSON格式登录"""
-    user = authenticate_user(login_data.username, login_data.password, db)
+    user = await authenticate_user_async(login_data.username, login_data.password, db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -89,17 +94,17 @@ async def login_json(login_data: LoginRequest, db: Session = Depends(get_db)):
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/me", response_model=UserResponse)
-async def read_users_me(current_user: User = Depends(get_current_user)):
+async def read_users_me(current_user: User = Depends(get_current_user_async)):
     """获取当前用户信息"""
     return UserResponse.model_validate(current_user)
 
 @router.get("/verify")
-async def verify_token(current_user: User = Depends(get_current_user)):
+async def verify_token(current_user: User = Depends(get_current_user_async)):
     """验证令牌有效性"""
     return {"valid": True, "user_id": current_user.id, "username": current_user.username}
 
 @router.post("/dev-login", response_model=Token)
-async def dev_auto_login(db: Session = Depends(get_db)):
+async def dev_auto_login(db: AsyncSession = Depends(get_async_db)):
     """开发环境自动登录（仅在DEBUG模式下可用）"""
     import os
     print("🔑 开发环境自动登录请求")
@@ -110,7 +115,10 @@ async def dev_auto_login(db: Session = Depends(get_db)):
         )
     
     # 查找admin用户
-    admin_user = db.query(User).filter(User.username == "admin").first()
+    query = select(User).where(User.username == "admin")
+    result = await db.execute(query)
+    admin_user = result.scalar_one_or_none()
+    
     if not admin_user:
         raise HTTPException(
             status_code=404,

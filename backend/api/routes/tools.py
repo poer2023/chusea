@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
 import matplotlib.pyplot as plt
@@ -12,6 +12,7 @@ import json
 
 from core.agent_manager import agent_manager, AgentRequest, AgentType
 from agents.tools_agent import ToolsAgent
+from core.auth import get_current_user
 
 router = APIRouter()
 
@@ -293,7 +294,6 @@ class AgentToolRequest(BaseModel):
     tool_type: str
     content: Optional[str] = None
     context: Dict[str, Any] = {}
-    user_id: int = 1
 
 class AgentToolResponse(BaseModel):
     content: str
@@ -303,11 +303,14 @@ class AgentToolResponse(BaseModel):
     error: Optional[str] = None
 
 @router.post("/agent/process", response_model=AgentToolResponse)
-async def process_with_agent(request: AgentToolRequest):
+async def process_with_agent(
+    request: AgentToolRequest,
+    current_user = Depends(get_current_user)
+):
     """使用工具Agent处理请求"""
     try:
         agent_request = AgentRequest(
-            user_id=request.user_id,
+            user_id=current_user.id,
             document_id=None,
             prompt=request.content or "",
             agent_type=AgentType.TOOLS,

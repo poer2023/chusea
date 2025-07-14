@@ -1,0 +1,49 @@
+{
+  "name": "ChUseA AI Chat Assistant",
+  "short_name": "ChUseA Chat",
+  "description": "Modern AI chat interface with workflow management and document collaboration",
+  "start_url": "/chat",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "business", "utilities"],
+  "features": [
+    "AI Chat Interface",
+    "Workflow Management",
+    "Document Collaboration",
+    "Real-time Messaging",
+    "Mobile Optimized"
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mobile chat interface"
+    },
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Desktop chat interface"
+    }
+  ]
+}

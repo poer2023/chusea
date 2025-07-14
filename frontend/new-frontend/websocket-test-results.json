@@ -1,0 +1,55 @@
+{
+  "connection": {
+    "basic": {
+      "status": "PASS",
+      "connectionTime": 8,
+      "timestamp": 1752406810444
+    },
+    "endpoints": [
+      {
+        "endpoint": "/api/ws/test-doc-integration",
+        "status": "PASS"
+      },
+      {
+        "endpoint": "/api/ws?doc_id=test-doc-integration",
+        "status": "PASS"
+      }
+    ]
+  },
+  "messageHandling": {
+    "workflowSubscription": {
+      "status": "PASS",
+      "timestamp": 1752406811451
+    },
+    "clientMessage": {
+      "status": "PASS",
+      "timestamp": 1752406812454
+    }
+  },
+  "heartbeat": {
+    "status": "PASS",
+    "latency": 1,
+    "timestamp": 1752406810448
+  },
+  "reconnection": {
+    "status": "PASS",
+    "timestamp": 1752406815482
+  },
+  "performance": {
+    "multipleConnections": {
+      "status": "PASS",
+      "connectionCount": 5,
+      "timestamp": 1752406814473
+    }
+  },
+  "errors": [],
+  "backend": {
+    "status": "PASS",
+    "websocketStatus": {
+      "active_connections": 0,
+      "document_subscriptions": {},
+      "status": "healthy"
+    },
+    "timestamp": 1752406810436
+  }
+}

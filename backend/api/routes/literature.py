@@ -1,17 +1,18 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
-from sqlalchemy.orm import Session
-from sqlalchemy import desc, and_
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import desc, and_, select
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
 import json
 
-from core.database import get_db, Literature
+from core.database import get_async_db, Literature, User
 from core.models import (
     LiteratureSearchRequest, LiteratureSearchResponse, 
     LiteratureResponse, LiteratureCreate, LiteratureUpdate
 )
 from core.agent_manager import agent_manager, AgentRequest, AgentType
 from agents.literature_agent import LiteratureAgent
+from core.auth import get_current_user
 
 router = APIRouter()
 
@@ -22,13 +23,11 @@ agent_manager.register_agent(literature_agent)
 class LiteratureCitationRequest(BaseModel):
     literature_data: Dict[str, Any]
     style: str = "APA"  # APA, MLA, Chicago
-    user_id: int = 1
 
 class LiteratureAnalysisRequest(BaseModel):
     literature_items: List[Dict[str, Any]]
     analysis_type: str = "relevance"  # relevance, quality, trend
     query: str
-    user_id: int = 1
 
 class LiteratureAgentResponse(BaseModel):
     content: str
@@ -40,8 +39,8 @@ class LiteratureAgentResponse(BaseModel):
 @router.post("/search", response_model=LiteratureSearchResponse)
 async def search_literature(
     request: LiteratureSearchRequest,
-    user_id: int = 1,  # TODO: 从认证中获取
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """搜索文献"""
     try:
@@ -57,7 +56,7 @@ async def search_literature(
                 "source": "google_scholar",
                 "url": "https://example.com/paper1",
                 "file_path": None,
-                "user_id": user_id,
+                "user_id": current_user.id,
                 "is_favorite": False,
                 "created_at": "2024-01-01T00:00:00Z"
             },
@@ -71,7 +70,7 @@ async def search_literature(
                 "source": "arxiv",
                 "url": "https://example.com/paper2",
                 "file_path": None,
-                "user_id": user_id,
+                "user_id": current_user.id,
                 "is_favorite": False,
                 "created_at": "2024-01-01T00:00:00Z"
             }
@@ -97,16 +96,19 @@ async def search_literature(
 # 文献数据库管理端点
 @router.get("/", response_model=List[LiteratureResponse])
 async def get_user_literature(
-    user_id: int = 1,  # TODO: 从认证中获取
+    current_user: User = Depends(get_current_user),
     skip: int = 0,
     limit: int = 20,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """获取用户保存的文献列表"""
     try:
-        literature = db.query(Literature).filter(
-            Literature.user_id == user_id
-        ).order_by(desc(Literature.created_at)).offset(skip).limit(limit).all()
+        query = select(Literature).where(
+            Literature.user_id == current_user.id
+        ).order_by(desc(Literature.created_at)).offset(skip).limit(limit)
+        
+        result = await db.execute(query)
+        literature = result.scalars().all()
         
         return [LiteratureResponse.from_orm(lit) for lit in literature]
     except Exception as e:
@@ -115,8 +117,8 @@ async def get_user_literature(
 @router.post("/save", response_model=LiteratureResponse)
 async def save_literature(
     literature: LiteratureCreate,
-    user_id: int = 1,  # TODO: 从认证中获取
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """保存文献到用户收藏"""
     try:
@@ -128,30 +130,32 @@ async def save_literature(
             abstract=literature.abstract,
             source=literature.source,
             url=literature.url,
-            user_id=user_id
+            user_id=current_user.id
         )
         
         db.add(db_literature)
-        db.commit()
-        db.refresh(db_literature)
+        await db.commit()
+        await db.refresh(db_literature)
         
         return LiteratureResponse.from_orm(db_literature)
     except Exception as e:
-        db.rollback()
+        await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/{literature_id}", response_model=LiteratureResponse)
 async def update_literature(
     literature_id: int,
     literature_update: LiteratureUpdate,
-    user_id: int = 1,  # TODO: 从认证中获取
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """更新文献信息"""
     try:
-        db_literature = db.query(Literature).filter(
-            and_(Literature.id == literature_id, Literature.user_id == user_id)
-        ).first()
+        query = select(Literature).where(
+            and_(Literature.id == literature_id, Literature.user_id == current_user.id)
+        )
+        result = await db.execute(query)
+        db_literature = result.scalar_one_or_none()
         
         if not db_literature:
             raise HTTPException(status_code=404, detail="文献不存在")
@@ -160,53 +164,58 @@ async def update_literature(
         for field, value in update_data.items():
             setattr(db_literature, field, value)
         
-        db.commit()
-        db.refresh(db_literature)
+        await db.commit()
+        await db.refresh(db_literature)
         
         return LiteratureResponse.from_orm(db_literature)
     except HTTPException:
         raise
     except Exception as e:
-        db.rollback()
+        await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/{literature_id}")
 async def delete_literature(
     literature_id: int,
-    user_id: int = 1,  # TODO: 从认证中获取
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """删除文献"""
     try:
-        db_literature = db.query(Literature).filter(
-            and_(Literature.id == literature_id, Literature.user_id == user_id)
-        ).first()
+        query = select(Literature).where(
+            and_(Literature.id == literature_id, Literature.user_id == current_user.id)
+        )
+        result = await db.execute(query)
+        db_literature = result.scalar_one_or_none()
         
         if not db_literature:
             raise HTTPException(status_code=404, detail="文献不存在")
         
+        # 使用session的delete方法（同步）
         db.delete(db_literature)
-        db.commit()
+        await db.commit()
         
         return {"message": "文献删除成功"}
     except HTTPException:
         raise
     except Exception as e:
-        db.rollback()
+        await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{literature_id}/citation")
 async def get_literature_citation(
     literature_id: int,
     format: str = "apa",
-    user_id: int = 1,  # TODO: 从认证中获取
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """生成文献引用格式"""
     try:
-        db_literature = db.query(Literature).filter(
-            and_(Literature.id == literature_id, Literature.user_id == user_id)
-        ).first()
+        query = select(Literature).where(
+            and_(Literature.id == literature_id, Literature.user_id == current_user.id)
+        )
+        result = await db.execute(query)
+        db_literature = result.scalar_one_or_none()
         
         if not db_literature:
             raise HTTPException(status_code=404, detail="文献不存在")
@@ -228,11 +237,14 @@ async def get_literature_citation(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/cite", response_model=LiteratureAgentResponse)
-async def generate_citation(request: LiteratureCitationRequest):
+async def generate_citation(
+    request: LiteratureCitationRequest,
+    current_user: User = Depends(get_current_user)
+):
     """生成引用"""
     try:
         agent_request = AgentRequest(
-            user_id=request.user_id,
+            user_id=current_user.id,
             prompt="生成引用",
             agent_type=AgentType.LITERATURE,
             context={
@@ -244,7 +256,7 @@ async def generate_citation(request: LiteratureCitationRequest):
         
         response = await agent_manager.process_request(agent_request)
         
-        return LiteratureResponse(
+        return LiteratureAgentResponse(
             content=response.content,
             success=response.success,
             metadata=response.metadata or {},
@@ -255,12 +267,15 @@ async def generate_citation(request: LiteratureCitationRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/analyze", response_model=LiteratureResponse)
-async def analyze_literature(request: LiteratureAnalysisRequest):
+@router.post("/analyze", response_model=LiteratureAgentResponse)
+async def analyze_literature(
+    request: LiteratureAnalysisRequest,
+    current_user: User = Depends(get_current_user)
+):
     """分析文献"""
     try:
         agent_request = AgentRequest(
-            user_id=request.user_id,
+            user_id=current_user.id,
             prompt=request.query,
             agent_type=AgentType.LITERATURE,
             context={
@@ -272,7 +287,7 @@ async def analyze_literature(request: LiteratureAnalysisRequest):
         
         response = await agent_manager.process_request(agent_request)
         
-        return LiteratureResponse(
+        return LiteratureAgentResponse(
             content=response.content,
             success=response.success,
             metadata=response.metadata or {},
@@ -284,7 +299,10 @@ async def analyze_literature(request: LiteratureAnalysisRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/upload")
-async def upload_literature(file: UploadFile = File(...), user_id: int = 1):
+async def upload_literature(
+    file: UploadFile = File(...), 
+    current_user: User = Depends(get_current_user)
+):
     """上传文献文件"""
     try:
         # 检查文件类型

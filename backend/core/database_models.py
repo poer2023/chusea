@@ -39,13 +39,13 @@ class WorkflowStatus(enum.Enum):
     FAILED = "failed"
 
 class NodeType(enum.Enum):
-    PLAN = "Plan"
-    DRAFT = "Draft"
-    CITATION = "Citation"
-    GRAMMAR = "Grammar"
-    READABILITY = "Readability"
-    USER_EDIT = "UserEdit"
-    PLUGIN = "Plugin"
+    PLAN = "plan"
+    DRAFT = "draft"
+    CITATION = "citation"
+    GRAMMAR = "grammar"
+    READABILITY = "readability"
+    USER_EDIT = "user_edit"
+    PLUGIN = "plugin"
 
 class NodeStatus(enum.Enum):
     PENDING = "pending"
@@ -82,6 +82,7 @@ class Document(Base):
     document_type = Column(Enum(DocumentType), default=DocumentType.ACADEMIC)
     word_count = Column(Integer, default=0)
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    is_deleted = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

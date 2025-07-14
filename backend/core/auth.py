@@ -5,8 +5,10 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional
 import os
-from core.database import get_db, User
+from core.database import get_db, get_async_db, User
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 # 配置
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here-change-in-production")
@@ -60,8 +62,24 @@ def get_current_user(
     user_id: int = Depends(verify_token),
     db: Session = Depends(get_db)
 ) -> User:
-    """获取当前用户"""
+    """获取当前用户（同步版本）"""
     user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    return user
+
+async def get_current_user_async(
+    user_id: int = Depends(verify_token),
+    db: AsyncSession = Depends(get_async_db)
+) -> User:
+    """获取当前用户（异步版本）"""
+    query = select(User).where(User.id == user_id)
+    result = await db.execute(query)
+    user = result.scalar_one_or_none()
+    
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -80,8 +98,20 @@ def optional_auth(credentials: Optional[HTTPAuthorizationCredentials] = Depends(
         return None
 
 def authenticate_user(username: str, password: str, db: Session) -> Optional[User]:
-    """验证用户"""
+    """验证用户（同步版本）"""
     user = db.query(User).filter(User.username == username).first()
+    if not user:
+        return None
+    if not verify_password(password, user.hashed_password):
+        return None
+    return user
+
+async def authenticate_user_async(username: str, password: str, db: AsyncSession) -> Optional[User]:
+    """验证用户（异步版本）"""
+    query = select(User).where(User.username == username)
+    result = await db.execute(query)
+    user = result.scalar_one_or_none()
+    
     if not user:
         return None
     if not verify_password(password, user.hashed_password):
