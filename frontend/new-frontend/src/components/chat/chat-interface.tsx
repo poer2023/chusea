@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useChat, useChatActions, useChatMessages } from '@/stores/chat-store';
+import { useChat, useChatMessages, useChatStore } from '@/stores/chat-store';
 import { useAuth } from '@/stores/auth-store';
 import { useWorkflowStore } from '@/stores/workflow-store';
 import { ChatMessage, SlashCommand } from '@/types/chat';
@@ -212,7 +212,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   const { user } = useAuth();
   const { currentSession, isConnected, isLoading, error } = useChat();
-  const { createSession, sendMessage, connect, executeCommand, addMessage, updateMessage, deleteMessage, retryMessage } = useChatActions();
+  const chatStore = useChatStore();
+  const { createSession, sendMessage, connect, executeCommand, addMessage, updateMessage, deleteMessage, retryMessage } = chatStore;
   const { messages } = useChatMessages();
   const workflowStore = useWorkflowStore();
 
@@ -405,16 +406,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     );
   }
 
-  const typingUsers = wsProps.typingUsers || [];
-  const activeTypingUsers = typingUsers.filter(t => t.isTyping);
+  const typingUsers = chatStore.typingUsers || [];
+  const activeTypingUsers = typingUsers.filter((t: any) => t.isTyping);
 
   return (
     <Card className={cn('flex flex-col', maxHeight, className)}>
       {/* Connection Status */}
       <ConnectionStatus 
         isConnected={wsConnected || isConnected} 
-        connectionQuality={wsProps.connectionQuality}
-        latency={wsProps.latency}
+        connectionQuality="good"
+        latency={wsProps.metrics?.latency || 0}
       />
 
       {/* Chat Header */}

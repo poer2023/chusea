@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { WebSocketServer } from 'ws';
+import { WebSocketServer, WebSocket } from 'ws';
 
 // WebSocket handler for real-time chat
 // Note: This is a simplified implementation. In production, you'd want to use
@@ -7,7 +7,7 @@ import { WebSocketServer } from 'ws';
 
 interface ChatWebSocketMessage {
   type: 'chat_message' | 'chat_typing' | 'chat_user_joined' | 'chat_user_left' | 'workflow_update' | 'error';
-  data: any;
+  data: unknown;
   timestamp: number;
   id: string;
 }
@@ -19,6 +19,7 @@ interface ConnectedClient {
   workflowId?: string;
   documentId?: string;
   lastSeen: number;
+  ws: WebSocket;
 }
 
 // In-memory store for connected clients
@@ -210,7 +211,7 @@ export const config = {
 export const createWebSocketHandler = () => {
   const wss = new WebSocketServer({ port: 8080 });
   
-  wss.on('connection', (ws, request) => {
+  wss.on('connection', (ws: WebSocket, request: NextRequest) => {
     const clientId = generateId();
     const url = new URL(request.url!, `http://${request.headers.host}`);
     const userId = url.searchParams.get('userId');
@@ -228,9 +229,9 @@ export const createWebSocketHandler = () => {
     console.log(`Client connected: ${clientId}, User: ${userId}, Session: ${sessionId}`);
     
     // Handle incoming messages
-    ws.on('message', async (data) => {
+    ws.on('message', async (data: unknown) => {
       try {
-        const message: ChatWebSocketMessage = JSON.parse(data.toString());
+        const message: ChatWebSocketMessage = JSON.parse(String(data));
         await handleChatMessage(clientId, message);
       } catch (error) {
         console.error('Error handling WebSocket message:', error);

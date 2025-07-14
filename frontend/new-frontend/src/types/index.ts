@@ -11,22 +11,24 @@ export * from './ui';
 // Re-export tRPC types for compatibility
 export type { 
   Document as TRPCDocument,
-  Workflow,
+  Workflow as TRPCWorkflow,
   User as TRPCUser,
   Session,
   WorkflowNode,
   WorkflowEdge,
   WorkflowExecution,
-  WorkflowExecutionStep,
+  WorkflowExecutionStep as TRPCWorkflowExecutionStep,
   UserStats,
   Folder,
   UserPreferences as TRPCUserPreferences
 } from './trpc';
 
-// Type aliases for backward compatibility
-export type WritingWorkflow = Workflow;
-export type WorkflowStep = WorkflowExecutionStep;
-export type WorkflowStepData = Record<string, unknown>;
+// Import workflow types
+export type { WritingWorkflow, WorkflowStep, WorkflowStepData } from './workflow';
+
+// Type aliases for backward compatibility  
+export type Workflow = WritingWorkflow;
+export type WorkflowExecutionStep = WorkflowStep;
 
 // API operation types
 export interface CreateDocumentData {

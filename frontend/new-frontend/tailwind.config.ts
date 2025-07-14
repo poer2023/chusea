@@ -164,7 +164,7 @@ const config: Config = {
   },
   plugins: [
     typography,
-    twAnimateCss,
+    twAnimateCss(),
   ],
 } satisfies Config;
 

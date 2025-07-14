@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
         temperature,
       });
 
-      return result.toAIStreamResponse();
+      return result.toDataStreamResponse();
     } else {
       // Non-streaming response
       const result = await generateText({

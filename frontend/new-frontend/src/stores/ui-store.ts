@@ -323,7 +323,14 @@ export const useUIStore = create<UIStoreState>()(
         },
 
         closeAllModals: () => {
-          set({ activeModals: [], modals: [], backdrop: false });
+          set((state) => ({
+            activeModals: [],
+            modals: {
+              ...state.modals,
+              modals: [],
+              backdrop: false
+            }
+          }));
         },
 
         updateModal: (id: string, updates: Partial<Modal>) => {
@@ -331,9 +338,12 @@ export const useUIStore = create<UIStoreState>()(
             activeModals: state.activeModals.map((modal) =>
               modal.id === id ? { ...modal, ...updates } : modal
             ),
-            modals: state.modals.map((modal) =>
-              modal.id === id ? { ...modal, ...updates } : modal
-            ),
+            modals: {
+              ...state.modals,
+              modals: state.modals.modals.map((modal) =>
+                modal.id === id ? { ...modal, ...updates } : modal
+              )
+            }
           }));
         },
 
@@ -343,7 +353,7 @@ export const useUIStore = create<UIStoreState>()(
         },
 
         setBreadcrumbs: (breadcrumbs: BreadcrumbItem[]) => {
-          set({ breadcrumbs, breadcrumb: breadcrumbs }); // Keep backward compatibility
+          set({ breadcrumbs });
         },
 
         addBreadcrumb: (breadcrumb: BreadcrumbItem) => {
@@ -351,7 +361,6 @@ export const useUIStore = create<UIStoreState>()(
             const newBreadcrumbs = [...state.breadcrumbs, breadcrumb];
             return { 
               breadcrumbs: newBreadcrumbs,
-              breadcrumb: newBreadcrumbs,
             };
           });
         },

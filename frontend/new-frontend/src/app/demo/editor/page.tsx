@@ -100,8 +100,26 @@ export default function EditorDemoPage() {
           title: 'Rich Text Editor Demo',
           content: content.html,
           tags: [
-            { id: '1', name: 'demo', slug: 'demo', color: '#3B82F6' },
-            { id: '2', name: 'editor', slug: 'editor', color: '#10B981' }
+            { 
+              id: '1', 
+              name: 'demo', 
+              slug: 'demo', 
+              color: '#3B82F6',
+              isSystem: false,
+              usage: 1,
+              createdAt: new Date().toISOString(),
+              createdBy: 'demo-user'
+            },
+            { 
+              id: '2', 
+              name: 'editor', 
+              slug: 'editor', 
+              color: '#10B981',
+              isSystem: false,
+              usage: 1,
+              createdAt: new Date().toISOString(),
+              createdBy: 'demo-user'
+            }
           ],
           metadata: {
             wordCount: content.wordCount,
