@@ -24,7 +24,7 @@ export class AuthAPI {
       `${this.baseEndpoint}/register`,
       userData
     )
-    return response.data
+    return response
   }
 
   /**
@@ -44,7 +44,7 @@ export class AuthAPI {
         }
       }
     )
-    return response.data
+    return response
   }
 
   /**
@@ -55,7 +55,7 @@ export class AuthAPI {
       `${this.baseEndpoint}/login-json`,
       credentials
     )
-    return response.data
+    return response
   }
 
   /**
@@ -63,7 +63,7 @@ export class AuthAPI {
    */
   async getCurrentUser(): Promise<UserResponse> {
     const response = await apiClient.get<UserResponse>(`${this.baseEndpoint}/me`)
-    return response.data
+    return response
   }
 
   /**
@@ -73,7 +73,7 @@ export class AuthAPI {
     const response = await apiClient.get<{ valid: boolean; user_id: string; username: string }>(
       `${this.baseEndpoint}/verify`
     )
-    return response.data
+    return response
   }
 
   /**
@@ -81,7 +81,7 @@ export class AuthAPI {
    */
   async devAutoLogin(): Promise<Token> {
     const response = await apiClient.post<Token>(`${this.baseEndpoint}/dev-login`)
-    return response.data
+    return response
   }
 
   /**
@@ -89,7 +89,7 @@ export class AuthAPI {
    */
   async getDevAuthStatus(): Promise<DevAuthStatus> {
     const response = await apiClient.get<DevAuthStatus>(`${this.baseEndpoint}/dev-status`)
-    return response.data
+    return response
   }
 
   /**
@@ -143,7 +143,7 @@ export class AuthAPI {
    */
   async refreshToken(): Promise<Token> {
     const response = await apiClient.post<Token>(`${this.baseEndpoint}/refresh`)
-    return response.data
+    return response
   }
 
   /**
@@ -154,7 +154,7 @@ export class AuthAPI {
       `${this.baseEndpoint}/password-reset`,
       { email }
     )
-    return response.data
+    return response
   }
 
   /**
@@ -165,7 +165,7 @@ export class AuthAPI {
       `${this.baseEndpoint}/password-reset/confirm`,
       { token, new_password: newPassword }
     )
-    return response.data
+    return response
   }
 
   /**
@@ -179,7 +179,7 @@ export class AuthAPI {
       `${this.baseEndpoint}/change-password`,
       { current_password: currentPassword, new_password: newPassword }
     )
-    return response.data
+    return response
   }
 
   /**
@@ -187,7 +187,7 @@ export class AuthAPI {
    */
   async updateProfile(userData: Partial<UserCreate>): Promise<UserResponse> {
     const response = await apiClient.put<UserResponse>(`${this.baseEndpoint}/profile`, userData)
-    return response.data
+    return response
   }
 
   /**
@@ -195,7 +195,7 @@ export class AuthAPI {
    */
   async deleteAccount(): Promise<{ message: string }> {
     const response = await apiClient.delete<{ message: string }>(`${this.baseEndpoint}/account`)
-    return response.data
+    return response
   }
 
   /**
@@ -206,7 +206,7 @@ export class AuthAPI {
       `${this.baseEndpoint}/verify-email`,
       { token }
     )
-    return response.data
+    return response
   }
 
   /**
@@ -216,7 +216,7 @@ export class AuthAPI {
     const response = await apiClient.post<{ message: string }>(
       `${this.baseEndpoint}/resend-verification`
     )
-    return response.data
+    return response
   }
 
   /**
@@ -226,7 +226,7 @@ export class AuthAPI {
     const response = await apiClient.post<{ qr_code: string; backup_codes: string[] }>(
       `${this.baseEndpoint}/2fa/enable`
     )
-    return response.data
+    return response
   }
 
   /**
@@ -237,7 +237,7 @@ export class AuthAPI {
       `${this.baseEndpoint}/2fa/disable`,
       { code }
     )
-    return response.data
+    return response
   }
 
   /**
@@ -248,7 +248,7 @@ export class AuthAPI {
       `${this.baseEndpoint}/2fa/verify`,
       { code }
     )
-    return response.data
+    return response
   }
 
   /**
@@ -270,7 +270,7 @@ export class AuthAPI {
       last_active: string
       current: boolean
     }>>(`${this.baseEndpoint}/sessions`)
-    return response.data
+    return response
   }
 
   /**
@@ -280,7 +280,7 @@ export class AuthAPI {
     const response = await apiClient.delete<{ message: string }>(
       `${this.baseEndpoint}/sessions/${sessionId}`
     )
-    return response.data
+    return response
   }
 
   /**
@@ -290,7 +290,7 @@ export class AuthAPI {
     const response = await apiClient.post<{ message: string }>(
       `${this.baseEndpoint}/sessions/revoke-all`
     )
-    return response.data
+    return response
   }
 }
 

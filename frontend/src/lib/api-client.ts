@@ -255,7 +255,7 @@ export class ApiClient {
     const { 
       retries = this.retries, 
       retryDelay = this.retryDelay, 
-      cache = true, 
+      useCache = true, 
       timeout = this.timeout, 
       headers: customHeaders, 
       signal: externalSignal, 
@@ -267,7 +267,7 @@ export class ApiClient {
     const method = fetchOptions.method || 'GET';
 
     // 缓存检查
-    if (this.shouldCache(method) && cache) {
+    if (this.shouldCache(method) && useCache) {
       const cacheKey = this.getCacheKey(endpoint, fetchOptions);
       const cachedData = this.cache.get(cacheKey);
       if (cachedData) {
@@ -309,7 +309,7 @@ export class ApiClient {
           const result = await this.handleResponse<T>(response);
 
           // 缓存成功的GET请求结果
-          if (this.shouldCache(method) && cache) {
+          if (this.shouldCache(method) && useCache) {
             const cacheKey = this.getCacheKey(endpoint, fetchOptions);
             this.cache.set(cacheKey, result);
           }
@@ -372,7 +372,7 @@ export class ApiClient {
     return this.request<LoginResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -383,7 +383,7 @@ export class ApiClient {
     return this.request<User>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -408,7 +408,7 @@ export class ApiClient {
     return this.request<LoginResponse>('/auth/refresh', {
       method: 'POST',
       body: JSON.stringify({ refreshToken }),
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -418,7 +418,7 @@ export class ApiClient {
   async logout(): Promise<{ message: string }> {
     return this.request<{ message: string }>('/auth/logout', {
       method: 'POST',
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -456,7 +456,7 @@ export class ApiClient {
     return this.request<Document>('/documents', {
       method: 'POST',
       body: JSON.stringify(data),
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -468,7 +468,7 @@ export class ApiClient {
     return this.request<Document>(`/documents/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -479,7 +479,7 @@ export class ApiClient {
     this.cache.invalidateByPattern('/documents');
     return this.request<{ message: string }>(`/documents/${id}`, {
       method: 'DELETE',
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -490,7 +490,7 @@ export class ApiClient {
     this.cache.invalidateByPattern('/documents');
     return this.request<Document>(`/documents/${id}/duplicate`, {
       method: 'POST',
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -510,7 +510,7 @@ export class ApiClient {
     return this.request<WritingResponse>('/writing/generate', {
       method: 'POST',
       body: JSON.stringify(request),
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -521,7 +521,7 @@ export class ApiClient {
     return this.request<WritingResponse>('/writing/improve', {
       method: 'POST',
       body: JSON.stringify(request),
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -532,7 +532,7 @@ export class ApiClient {
     return this.request<WritingResponse>('/writing/convert', {
       method: 'POST',
       body: JSON.stringify(request),
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -543,7 +543,7 @@ export class ApiClient {
     return this.request<WritingSuggestion[]>('/writing/suggestions', {
       method: 'POST',
       body: JSON.stringify({ text, mode }),
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -563,7 +563,7 @@ export class ApiClient {
     return this.request<LiteratureSearchResponse>('/literature/search', {
       method: 'POST',
       body: JSON.stringify(request),
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -592,7 +592,7 @@ export class ApiClient {
     return this.request<Literature>('/literature', {
       method: 'POST',
       body: JSON.stringify(data),
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -604,7 +604,7 @@ export class ApiClient {
     return this.request<Literature>(`/literature/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -615,7 +615,7 @@ export class ApiClient {
     this.cache.invalidateByPattern('/literature');
     return this.request<{ message: string }>(`/literature/${id}`, {
       method: 'DELETE',
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -626,7 +626,7 @@ export class ApiClient {
     return this.request<CitationResponse>('/literature/cite', {
       method: 'POST',
       body: JSON.stringify(request),
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -639,7 +639,7 @@ export class ApiClient {
     return this.request<FormatConversionResponse>('/tools/convert-format', {
       method: 'POST',
       body: JSON.stringify(request),
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -650,7 +650,7 @@ export class ApiClient {
     return this.request<ChartGenerationResponse>('/tools/generate-chart', {
       method: 'POST',
       body: JSON.stringify(request),
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -661,7 +661,7 @@ export class ApiClient {
     return this.request<DataAnalysisResponse>('/tools/analyze-data', {
       method: 'POST',
       body: JSON.stringify(request),
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -675,7 +675,7 @@ export class ApiClient {
     return this.request<WorkflowResponse>('/workflows/start', {
       method: 'POST',
       body: JSON.stringify(request),
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -686,7 +686,7 @@ export class ApiClient {
     this.cache.invalidateByPattern(`/workflows/${documentId}`);
     return this.request<WorkflowResponse>(`/workflows/${documentId}/stop`, {
       method: 'POST',
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -704,7 +704,7 @@ export class ApiClient {
     this.cache.invalidateByPattern(`/workflows/${documentId}`);
     return this.request<WorkflowResponse>(`/workflows/${documentId}/pause`, {
       method: 'POST',
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -715,7 +715,7 @@ export class ApiClient {
     this.cache.invalidateByPattern(`/workflows/${documentId}`);
     return this.request<WorkflowResponse>(`/workflows/${documentId}/resume`, {
       method: 'POST',
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -727,7 +727,7 @@ export class ApiClient {
     return this.request<WorkflowResponse>(`/workflows/${documentId}/rollback`, {
       method: 'POST',
       body: JSON.stringify({ nodeId }),
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 
@@ -816,7 +816,7 @@ export class ApiClient {
         body: formData,
         headers, // Keep headers for Authorization etc., but remove Content-Type
         signal,
-        cache: 'no-store' as RequestCache,
+        cache: 'no-store',
       });
       return response;
     } catch (error: any) {
@@ -842,7 +842,7 @@ export class ApiClient {
     this.cache.invalidateByPattern('/files');
     return this.request<{ message: string }>(`/files/${fileId}`, {
       method: 'DELETE',
-      cache: 'no-store' as RequestCache,
+      cache: 'no-store',
     });
   }
 

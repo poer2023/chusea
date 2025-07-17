@@ -97,6 +97,9 @@ export interface WorkflowState {
   enableAutoSave: () => void;
   disableAutoSave: () => void;
   
+  // Event logging
+  logEvent: (type: string, step: WorkflowStep, data?: any) => void;
+  
   // Event handling
   sendEvent: (event: WorkflowEvent) => void;
   subscribeToEvents: (callback: (event: WorkflowEvent) => void) => () => void;

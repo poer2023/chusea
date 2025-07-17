@@ -21,6 +21,7 @@ export type WebSocketMessageType =
   | 'workflow_step_change'
   | 'workflow_progress'
   | 'workflow_error'
+  | 'workflow_command'
   | 'document_change'
   | 'document_collaboration'
   | 'user_presence'
@@ -37,7 +38,10 @@ export type WebSocketMessageType =
   | 'auth_required'
   | 'connection_established'
   | 'reconnect_success'
-  | 'chat_message';
+  | 'chat_message'
+  | 'chat_typing'
+  | 'chat_user_joined'
+  | 'chat_user_left';
 
 // Workflow update messages
 export interface WorkflowUpdateMessage {

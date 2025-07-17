@@ -437,6 +437,7 @@ export interface RequestConfig {
   retryDelay?: number;
   onUploadProgress?: (progress: UploadProgress) => void;
   signal?: AbortSignal;
+  useCache?: boolean; // Custom cache flag for API client
 }
 
 // Client configuration

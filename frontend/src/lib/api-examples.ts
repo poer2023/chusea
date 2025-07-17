@@ -11,6 +11,7 @@ import {
   WritingAction,
   ChartType,
   LiteratureSource,
+  NodeType,
 } from './types/api';
 
 // ===== 认证示例 =====
@@ -364,7 +365,7 @@ export async function startWorkflowExample(documentId: string) {
         maxRetries: 3,
         autoRun: true,
         writingMode: WritingMode.ACADEMIC,
-        enabledSteps: ['plan', 'draft', 'grammar', 'readability'],
+        enabledSteps: [NodeType.PLAN, NodeType.DRAFT, NodeType.GRAMMAR, NodeType.READABILITY],
       },
     });
     
