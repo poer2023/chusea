@@ -78,7 +78,7 @@ fi
 
 # 启动前端
 echo "🎨 启动前端服务..."
-cd ../new-frontend
+cd ../frontend/new-frontend
 
 # 安装依赖
 echo "📦 安装前端依赖..."
