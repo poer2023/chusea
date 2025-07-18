@@ -1,136 +1,74 @@
-'use client';
-
-import Link from 'next/link';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-
 export default function HomePage() {
-  const features = [
-    {
-      title: '文档管理',
-      description: '创建、编辑和管理您的文档，支持协作和版本控制',
-      icon: '📄',
-      href: '/documents',
-      color: 'bg-blue-50 border-blue-200 hover:bg-blue-100',
-    },
-    {
-      title: '文献研究',
-      description: '搜索和管理学术文献，构建知识库',
-      icon: '📚',
-      href: '/literature',
-      color: 'bg-green-50 border-green-200 hover:bg-green-100',
-    },
-    {
-      title: 'AI写作工作台',
-      description: '集成AI助手的现代化写作环境，支持实时协作和智能建议',
-      icon: '✍️',
-      href: '/workspace',
-      color: 'bg-purple-50 border-purple-200 hover:bg-purple-100',
-    },
-    {
-      title: '用户认证',
-      description: '登录或注册账户，管理个人信息',
-      icon: '👤',
-      href: '/auth/login',
-      color: 'bg-orange-50 border-orange-200 hover:bg-orange-100',
-    },
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* 头部 */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <h1 className="text-3xl font-bold text-gray-900">ChUseA</h1>
-              <span className="ml-2 text-sm text-gray-500">AI助手平台</span>
-            </div>
-            <nav className="hidden md:flex space-x-8">
-              <Link href="/documents" className="text-gray-600 hover:text-gray-900">
-                文档
-              </Link>
-              <Link href="/literature" className="text-gray-600 hover:text-gray-900">
-                文献
-              </Link>
-              <Link href="/tools" className="text-gray-600 hover:text-gray-900">
-                工具
-              </Link>
-              <Link href="/auth/login" className="text-gray-600 hover:text-gray-900">
-                登录
-              </Link>
-            </nav>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden min-h-screen flex items-center">
+        {/* 动态背景装饰 */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20" />
+        
+        {/* 多层次背景球体 */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-blue-500/30 to-cyan-500/30 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-r from-purple-500/30 to-pink-500/30 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-full blur-3xl animate-pulse" />
+        
+        {/* 网格背景 */}
+        <div className="absolute inset-0 opacity-30">
+          <div className="h-full w-full bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.03)_1px,_transparent_1px)] bg-[length:60px_60px]" />
         </div>
-      </header>
-
-      {/* 主要内容 */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* 欢迎区域 */}
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            欢迎使用 ChUseA
-          </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            集成AI助手、文档管理、文献研究和写作工具的综合平台
-          </p>
-        </div>
-
-        {/* 功能卡片 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 mb-12">
-          {features.map((feature, index) => (
-            <Card key={index} className={`p-6 transition-all duration-200 ${feature.color}`}>
-              <div className="flex items-start">
-                <div className="text-3xl mr-4">{feature.icon}</div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                    {feature.title}
-                  </h3>
-                  <p className="text-gray-600 mb-4">
-                    {feature.description}
-                  </p>
-                  <Link href={feature.href}>
-                    <Button className="w-full">
-                      访问 {feature.title}
-                    </Button>
-                  </Link>
-                </div>
+        
+        <div className="relative container mx-auto px-4 py-16 lg:py-24 z-10">
+          <div className="max-w-6xl mx-auto text-center">
+            <div className="mb-12">
+              {/* Glassmorphism徽章 */}
+              <div className="inline-flex items-center px-6 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-full text-white font-medium mb-8 shadow-lg">
+                <span className="bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+                  欢迎使用 ChUseA v2.0
+                </span>
               </div>
-            </Card>
-          ))}
-        </div>
-
-        {/* 快速操作 */}
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">快速操作</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link href="/documents/new">
-              <Button variant="outline" className="w-full">
-                📝 新建文档
-              </Button>
-            </Link>
-            <Link href="/literature">
-              <Button variant="outline" className="w-full">
-                🔍 搜索文献
-              </Button>
-            </Link>
-            <Link href="/tools">
-              <Button variant="outline" className="w-full">
-                🛠️ 写作工具
-              </Button>
-            </Link>
+              
+              <h1 className="text-5xl lg:text-7xl font-bold mb-8 leading-tight">
+                <span className="text-white">智能化的</span>
+                <br />
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  学术写作助手
+                </span>
+              </h1>
+              
+              <p className="text-xl lg:text-2xl text-gray-300 mb-12 max-w-4xl mx-auto leading-relaxed">
+                集成AI助手、文献管理、文档创作于一体的综合平台。
+                <br />
+                让学术写作变得更加智能、高效和协作。
+              </p>
+              
+              {/* 现代化按钮组 */}
+              <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
+                <button className="group bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-2xl shadow-blue-500/25 border-0 px-8 py-4 text-lg font-semibold transform hover:scale-105 transition-all duration-300 rounded-lg">
+                  <span className="relative z-10">开始写作</span>
+                </button>
+                <button className="bg-white/10 backdrop-blur-lg border-2 border-white/20 text-white hover:bg-white/20 px-8 py-4 text-lg font-semibold transform hover:scale-105 transition-all duration-300 rounded-lg">
+                  浏览文献
+                </button>
+              </div>
+            </div>
+            
+            {/* 现代化统计信息 - Glassmorphism卡片 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
+              <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-8 text-center hover:bg-white/20 transition-all duration-300 group">
+                <div className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-3 group-hover:scale-110 transition-transform duration-300">10K+</div>
+                <div className="text-gray-300 text-lg">活跃用户</div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-8 text-center hover:bg-white/20 transition-all duration-300 group">
+                <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-3 group-hover:scale-110 transition-transform duration-300">50K+</div>
+                <div className="text-gray-300 text-lg">文档创建</div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-8 text-center hover:bg-white/20 transition-all duration-300 group">
+                <div className="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent mb-3 group-hover:scale-110 transition-transform duration-300">1M+</div>
+                <div className="text-gray-300 text-lg">文献引用</div>
+              </div>
+            </div>
           </div>
         </div>
-      </main>
-
-      {/* 页脚 */}
-      <footer className="bg-white border-t mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center text-gray-600">
-            <p>&copy; 2024 ChUseA. 所有权利保留.</p>
-          </div>
-        </div>
-      </footer>
+      </section>
     </div>
   );
 }

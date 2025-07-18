@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# TypeScript 类型检查
+echo "📝 Checking TypeScript types..."
+npm run type-check
+
+# ESLint 检查
+echo "🔍 Running ESLint..."
+npm run lint
+
+# 如果所有检查都通过，则允许提交
+echo "✅ All checks passed! Ready to commit."

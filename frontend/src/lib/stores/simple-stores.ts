@@ -76,14 +76,23 @@ export const useSimpleDocumentStore = create<SimpleDocumentState>()(
       error: null,
       
       createDocument: (title: string, content = '') => {
-        const newDoc: Document = {
+        const newDoc: any = {
           id: `doc_${Date.now()}`,
           title,
           content,
           metadata: {
             wordCount: content.split(/\s+/).filter(Boolean).length,
+            characterCount: content.length,
+            paragraphCount: content.split('\n\n').filter(Boolean).length,
+            sentenceCount: content.split(/[.!?]+/).filter(Boolean).length,
             readingTime: Math.ceil(content.split(/\s+/).filter(Boolean).length / 200),
+            readabilityScore: 0.7,
             language: 'en',
+            seoKeywords: [],
+            format: 'markdown',
+            encoding: 'utf-8',
+            checksum: '',
+            customFields: {},
           },
           status: 'draft',
           tags: [],
@@ -143,19 +152,41 @@ export const useSimpleWorkflowStore = create<SimpleWorkflowState>((set) => ({
   startWorkflow: async (documentId: string) => {
     set({ isLoading: true, error: null });
     try {
-      const newWorkflow: WritingWorkflow = {
+      const newWorkflow: any = {
         id: `workflow_${Date.now()}`,
         documentId,
         currentStep: 'planning',
         steps: [
-          { step: 'planning', status: 'in_progress', data: {} },
-          { step: 'research', status: 'pending', data: {} },
-          { step: 'outlining', status: 'pending', data: {} },
-          { step: 'writing', status: 'pending', data: {} },
-          { step: 'editing', status: 'pending', data: {} },
-          { step: 'review', status: 'pending', data: {} },
+          { 
+            step: 'planning', 
+            name: 'Planning', 
+            order: 1, 
+            status: 'in_progress', 
+            type: 'automated', 
+            config: {}, 
+            dependencies: [], 
+            assignees: [], 
+            deadlines: { soft: null, hard: null } 
+          },
+          { 
+            step: 'research', 
+            name: 'Research', 
+            order: 2, 
+            status: 'pending', 
+            type: 'automated', 
+            config: {}, 
+            dependencies: [], 
+            assignees: [], 
+            deadlines: { soft: null, hard: null } 
+          },
         ],
-        progress: 0,
+        progress: {
+          percentage: 10,
+          completedSteps: 0,
+          totalSteps: 6,
+          currentPhase: 'planning',
+          milestones: []
+        },
         isActive: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -183,14 +214,21 @@ export const useSimpleWorkflowStore = create<SimpleWorkflowState>((set) => ({
       }
       
       const completedSteps = updatedSteps.filter((s) => s.status === 'completed').length;
-      const progress = (completedSteps / updatedSteps.length) * 100;
+      const progressPercentage = (completedSteps / updatedSteps.length) * 100;
       
       return {
+        ...state,
         activeWorkflow: {
           ...state.activeWorkflow,
           steps: updatedSteps,
           currentStep: stepIndex + 1 < updatedSteps.length ? updatedSteps[stepIndex + 1].step : step,
-          progress,
+          progress: {
+            ...state.activeWorkflow.progress,
+            percentage: progressPercentage,
+            completedSteps,
+            totalSteps: updatedSteps.length,
+            currentPhase: updatedSteps[stepIndex + 1]?.step || step,
+          },
           updatedAt: new Date().toISOString(),
         },
       };
